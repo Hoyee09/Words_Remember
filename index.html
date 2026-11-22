@@ -1,0 +1,2431 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4efe5">
+  <title>Wordloom · 英文背单词与检测</title>
+  <style>
+    :root {
+      --paper: #f4efe5;
+      --paper-deep: #e9e1d3;
+      --ink: #172d35;
+      --muted: #68777a;
+      --line: rgba(23, 45, 53, 0.14);
+      --card: rgba(255, 252, 246, 0.92);
+      --accent: #df6249;
+      --accent-dark: #bd4935;
+      --accent-soft: #f7ded6;
+      --green: #2d7668;
+      --green-soft: #dcebe5;
+      --gold: #bd8c42;
+      --shadow: 0 24px 70px rgba(45, 53, 47, 0.12);
+      --radius: 28px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 320px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(223, 98, 73, 0.12), transparent 28rem),
+        radial-gradient(circle at 88% 18%, rgba(45, 118, 104, 0.12), transparent 32rem),
+        linear-gradient(145deg, #f8f4ec 0%, var(--paper) 52%, #eee7dc 100%);
+      font-family: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      opacity: 0.28;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(223, 98, 73, 0.28);
+      outline-offset: 3px;
+    }
+
+    .app-shell {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 28px 0 46px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 26px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 190px;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      color: #fffaf2;
+      background: var(--ink);
+      border-radius: 14px 14px 14px 5px;
+      place-items: center;
+      box-shadow: 0 8px 22px rgba(23, 45, 53, 0.2);
+    }
+
+    .brand-mark svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .brand-copy strong {
+      display: block;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .brand-copy span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .segmented {
+      display: inline-grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      padding: 5px;
+      background: rgba(255, 252, 246, 0.72);
+      border: 1px solid rgba(23, 45, 53, 0.1);
+      border-radius: 999px;
+      box-shadow: 0 8px 30px rgba(23, 45, 53, 0.06);
+      backdrop-filter: blur(16px);
+    }
+
+    .tab-button {
+      min-width: 120px;
+      padding: 11px 18px;
+      background: transparent;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      transition: color 180ms ease, background 180ms ease, transform 180ms ease;
+    }
+
+    .tab-button:hover {
+      color: var(--accent-dark);
+    }
+
+    .tab-button.active {
+      color: #fff;
+      background: var(--ink);
+      box-shadow: 0 5px 14px rgba(23, 45, 53, 0.2);
+    }
+
+    .top-stat {
+      min-width: 190px;
+      text-align: right;
+    }
+
+    .top-stat strong {
+      display: block;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .top-stat span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .screen {
+      display: none;
+      animation: rise 320ms ease both;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .study-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .word-card {
+      position: relative;
+      display: flex;
+      min-height: 590px;
+      padding: clamp(28px, 5vw, 64px);
+      background: var(--card);
+      border: 1px solid rgba(23, 45, 53, 0.1);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      flex-direction: column;
+      isolation: isolate;
+    }
+
+    .word-card::before {
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      z-index: -1;
+      width: 310px;
+      height: 310px;
+      content: "";
+      background: radial-gradient(circle, rgba(223, 98, 73, 0.12), transparent 68%);
+      border-radius: 50%;
+    }
+
+    .word-card::after {
+      position: absolute;
+      right: 52px;
+      bottom: 38px;
+      z-index: -1;
+      width: 90px;
+      height: 90px;
+      content: "";
+      border: 1px solid rgba(23, 45, 53, 0.1);
+      border-radius: 50%;
+      box-shadow: 0 0 0 17px rgba(23, 45, 53, 0.025), 0 0 0 34px rgba(23, 45, 53, 0.018);
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .word-number {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-button {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.58);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      cursor: pointer;
+      place-items: center;
+      transition: 180ms ease;
+    }
+
+    .icon-button:hover {
+      color: var(--accent-dark);
+      background: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 7px 18px rgba(23, 45, 53, 0.1);
+    }
+
+    .icon-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .word-main {
+      display: flex;
+      flex: 1;
+      padding: 52px 0 38px;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .headword {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(46px, 7.5vw, 88px);
+      font-weight: 500;
+      letter-spacing: -0.045em;
+      line-height: 0.98;
+      overflow-wrap: normal;
+      word-break: normal;
+      hyphens: none;
+    }
+
+    .headword.phrase {
+      font-size: clamp(38px, 5.7vw, 66px);
+      line-height: 1.1;
+    }
+
+    .phonetic-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .phonetic {
+      color: var(--accent-dark);
+      font-family: "Lucida Sans Unicode", "Segoe UI", sans-serif;
+      font-size: clamp(16px, 2vw, 21px);
+      letter-spacing: 0.015em;
+    }
+
+    .speak-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 11px;
+      color: var(--green);
+      background: var(--green-soft);
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .speak-button svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .meaning-block {
+      margin-top: 34px;
+      padding-top: 27px;
+      border-top: 1px solid var(--line);
+    }
+
+    .meaning-label,
+    .example-label {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .pos-badge {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 5px 10px;
+      color: var(--green);
+      background: var(--green-soft);
+      border-radius: 6px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 13px;
+      font-style: italic;
+      font-weight: 700;
+    }
+
+    .meaning {
+      margin: 0;
+      font-size: clamp(21px, 3vw, 31px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.42;
+    }
+
+    .example-block {
+      margin-top: 30px;
+      padding: 21px 23px;
+      background: rgba(244, 239, 229, 0.78);
+      border-left: 3px solid var(--gold);
+      border-radius: 4px 16px 16px 4px;
+    }
+
+    .example {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 19px;
+      line-height: 1.62;
+    }
+
+    .example em {
+      color: var(--accent-dark);
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 31px;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 17px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      transition: 180ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 7px 18px rgba(23, 45, 53, 0.09);
+    }
+
+    .button.secondary {
+      background: transparent;
+    }
+
+    .button.secondary:hover {
+      background: #fff;
+    }
+
+    .button.primary {
+      color: #fff;
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .button.primary:hover {
+      background: #25434d;
+    }
+
+    .button.accent {
+      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .button.accent:hover {
+      background: var(--accent-dark);
+    }
+
+    .button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .button svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .learned-button.learned {
+      color: var(--green);
+      background: var(--green-soft);
+      border-color: transparent;
+    }
+
+    .side-panel {
+      display: flex;
+      gap: 14px;
+      flex-direction: column;
+    }
+
+    .panel-card {
+      padding: 23px;
+      background: rgba(255, 252, 246, 0.72);
+      border: 1px solid rgba(23, 45, 53, 0.1);
+      border-radius: 22px;
+      backdrop-filter: blur(18px);
+    }
+
+    .progress-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .progress-head strong {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 34px;
+      font-weight: 500;
+    }
+
+    .progress-head span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .progress-track {
+      height: 7px;
+      margin: 15px 0 11px;
+      background: var(--paper-deep);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), #61a493);
+      border-radius: inherit;
+      transition: width 260ms ease;
+    }
+
+    .progress-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      top: 50%;
+      left: 14px;
+      width: 16px;
+      height: 16px;
+      color: var(--muted);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 45px;
+      padding: 0 14px 0 40px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .search-input::placeholder {
+      color: #8b9696;
+    }
+
+    .search-results {
+      display: grid;
+      max-height: 242px;
+      margin-top: 10px;
+      gap: 6px;
+      overflow: auto;
+      scrollbar-width: thin;
+    }
+
+    .search-result {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 11px;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    .search-result:hover {
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .search-result strong {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 14px;
+    }
+
+    .search-result span {
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .empty-search {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .shortcut-card {
+      margin-top: auto;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    .shortcut-card kbd {
+      display: inline-block;
+      min-width: 22px;
+      padding: 1px 5px;
+      color: var(--ink);
+      text-align: center;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 10px;
+    }
+
+    .test-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .quiz-card {
+      min-height: 590px;
+      padding: clamp(26px, 5vw, 54px);
+      background: var(--card);
+      border: 1px solid rgba(23, 45, 53, 0.1);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .quiz-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .quiz-progress-text {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .score-pill {
+      padding: 7px 12px;
+      color: var(--green);
+      background: var(--green-soft);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .quiz-progress {
+      height: 6px;
+      margin-top: 15px;
+      background: var(--paper-deep);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .quiz-progress-fill {
+      width: 0;
+      height: 100%;
+      background: var(--accent);
+      border-radius: inherit;
+      transition: width 220ms ease;
+    }
+
+    .quiz-content {
+      display: flex;
+      min-height: 438px;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .prompt-label {
+      margin: 0 0 17px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .quiz-word-row {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .quiz-word {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(45px, 7vw, 78px);
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      line-height: 1.03;
+      overflow-wrap: normal;
+      word-break: normal;
+      hyphens: none;
+    }
+
+    .quiz-word.phrase {
+      font-size: clamp(36px, 5.4vw, 62px);
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 38px;
+    }
+
+    .option {
+      display: flex;
+      min-height: 64px;
+      padding: 14px 17px;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: 160ms ease;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .option:hover:not(:disabled) {
+      border-color: rgba(23, 45, 53, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 9px 20px rgba(23, 45, 53, 0.08);
+    }
+
+    .option:disabled {
+      cursor: default;
+    }
+
+    .option-key {
+      display: grid;
+      width: 25px;
+      height: 25px;
+      color: var(--muted);
+      background: var(--paper);
+      border-radius: 6px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 12px;
+      flex: 0 0 auto;
+      place-items: center;
+    }
+
+    .option-text {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .option.correct {
+      color: var(--green);
+      background: var(--green-soft);
+      border-color: rgba(45, 118, 104, 0.4);
+    }
+
+    .option.correct .option-key {
+      color: #fff;
+      background: var(--green);
+    }
+
+    .option.wrong {
+      color: #9b392a;
+      background: var(--accent-soft);
+      border-color: rgba(223, 98, 73, 0.4);
+    }
+
+    .option.wrong .option-key {
+      color: #fff;
+      background: var(--accent);
+    }
+
+    .quiz-feedback {
+      display: flex;
+      min-height: 47px;
+      margin-top: 20px;
+      align-items: center;
+      gap: 9px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .feedback-icon {
+      display: none;
+      width: 25px;
+      height: 25px;
+      color: #fff;
+      background: var(--green);
+      border-radius: 50%;
+      place-items: center;
+    }
+
+    .feedback-icon.show {
+      display: grid;
+    }
+
+    .feedback-icon.wrong {
+      background: var(--accent);
+    }
+
+    .feedback-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .quiz-side {
+      display: flex;
+      gap: 14px;
+      flex-direction: column;
+    }
+
+    .quiz-side .panel-card {
+      padding: 23px;
+    }
+
+    .side-title {
+      margin: 0 0 17px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      padding: 13px 10px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(23, 45, 53, 0.08);
+      border-radius: 12px;
+    }
+
+    .stat-box strong {
+      display: block;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 25px;
+      font-weight: 500;
+    }
+
+    .stat-box span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .setting-row {
+      margin-top: 20px;
+    }
+
+    .setting-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .setting-label strong {
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 16px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      background: var(--paper-deep);
+      border-radius: 99px;
+      cursor: pointer;
+      appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--accent);
+      border: 3px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(23, 45, 53, 0.22);
+      appearance: none;
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .quiz-actions {
+      display: grid;
+      margin-top: 21px;
+      gap: 9px;
+    }
+
+    .quiz-actions .button {
+      width: 100%;
+    }
+
+    .result-card {
+      display: none;
+      min-height: 590px;
+      padding: clamp(28px, 5vw, 58px);
+      text-align: center;
+      background: var(--card);
+      border: 1px solid rgba(23, 45, 53, 0.1);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      place-items: center;
+    }
+
+    .result-card.show {
+      display: grid;
+      animation: rise 300ms ease both;
+    }
+
+    .result-inner {
+      max-width: 540px;
+    }
+
+    .result-ring {
+      display: grid;
+      width: 174px;
+      height: 174px;
+      margin: 0 auto 27px;
+      background: conic-gradient(var(--accent) var(--score-angle, 0deg), var(--paper-deep) 0);
+      border-radius: 50%;
+      place-items: center;
+    }
+
+    .result-ring::before {
+      grid-area: 1 / 1;
+      width: 136px;
+      height: 136px;
+      content: "";
+      background: #fffcf6;
+      border-radius: 50%;
+      box-shadow: inset 0 1px 5px rgba(23, 45, 53, 0.06);
+    }
+
+    .result-score {
+      z-index: 1;
+      grid-area: 1 / 1;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 44px;
+      line-height: 1;
+    }
+
+    .result-score span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+
+    .result-title {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 36px;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+    }
+
+    .result-copy {
+      margin: 12px auto 28px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .result-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .library-summary {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 16px;
+      padding: 24px 26px;
+      background: rgba(255, 252, 246, 0.7);
+      border: 1px solid rgba(23, 45, 53, 0.1);
+      border-radius: 22px;
+      backdrop-filter: blur(18px);
+    }
+
+    .library-intro {
+      display: flex;
+      max-width: 470px;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .library-kicker {
+      margin: 0 0 7px;
+      color: var(--accent-dark);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .library-intro h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 500;
+      letter-spacing: -0.035em;
+    }
+
+    .library-intro p {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .library-tabs {
+      display: grid;
+      min-width: min(470px, 50%);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .library-tab {
+      display: flex;
+      min-height: 79px;
+      padding: 12px 14px;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.46);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      cursor: pointer;
+      flex-direction: column;
+      justify-content: center;
+      transition: 170ms ease;
+    }
+
+    .library-tab:hover {
+      background: #fff;
+      transform: translateY(-1px);
+    }
+
+    .library-tab strong {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 24px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .library-tab span {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .library-tab.active {
+      color: #fff;
+      background: var(--ink);
+      border-color: var(--ink);
+      box-shadow: 0 8px 20px rgba(23, 45, 53, 0.16);
+    }
+
+    .library-tab.active span {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .library-panel {
+      overflow: hidden;
+      background: var(--card);
+      border: 1px solid rgba(23, 45, 53, 0.1);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .library-panel-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 27px 28px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .library-panel-head h2 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 27px;
+      font-weight: 500;
+      letter-spacing: -0.025em;
+    }
+
+    .library-panel-head p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .library-tools {
+      display: flex;
+      min-width: min(570px, 55%);
+      align-items: center;
+      justify-content: flex-end;
+      gap: 9px;
+    }
+
+    .library-search {
+      width: min(330px, 100%);
+    }
+
+    .button.small {
+      min-height: 39px;
+      padding: 8px 13px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .library-table-wrap {
+      max-height: 61vh;
+      overflow: auto;
+      scrollbar-color: rgba(23, 45, 53, 0.24) transparent;
+      scrollbar-width: thin;
+    }
+
+    .word-table {
+      width: 100%;
+      min-width: 850px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .word-table thead {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: #f8f4ec;
+      box-shadow: 0 1px 0 var(--line);
+    }
+
+    .word-table th {
+      padding: 12px 15px;
+      color: var(--muted);
+      text-align: left;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .word-table td {
+      padding: 12px 15px;
+      vertical-align: middle;
+      border-bottom: 1px solid rgba(23, 45, 53, 0.075);
+    }
+
+    .word-table tbody tr {
+      transition: background 150ms ease;
+    }
+
+    .word-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.66);
+    }
+
+    .word-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .table-index {
+      width: 54px;
+      color: #98a1a0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .row-word {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    .ipa-cell {
+      color: var(--accent-dark);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .pos-cell {
+      color: var(--green);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 12px;
+      font-style: italic;
+      white-space: nowrap;
+    }
+
+    .meaning-peek {
+      position: relative;
+      display: inline-flex;
+      width: 100%;
+      min-width: 160px;
+      min-height: 34px;
+      padding: 5px 8px;
+      text-align: left;
+      background: rgba(244, 239, 229, 0.72);
+      border: 1px dashed rgba(23, 45, 53, 0.18);
+      border-radius: 8px;
+      cursor: pointer;
+      align-items: center;
+    }
+
+    .meaning-peek .meaning-value {
+      line-height: 1.45;
+      transition: filter 150ms ease, opacity 150ms ease;
+    }
+
+    .meaning-peek.masked .meaning-value {
+      opacity: 0.3;
+      filter: blur(6px);
+      user-select: none;
+    }
+
+    .meaning-peek.masked::after {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      content: "点击显现";
+      color: var(--accent-dark);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      place-items: center;
+    }
+
+    .mastery-cell {
+      width: 178px;
+      white-space: nowrap;
+    }
+
+    .mastery-cell-inner {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      min-width: 63px;
+      padding: 5px 8px;
+      color: var(--muted);
+      background: var(--paper);
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      justify-content: center;
+    }
+
+    .status-pill.mastered {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .row-action {
+      padding: 6px 9px;
+      color: var(--accent-dark);
+      background: transparent;
+      border: 1px solid rgba(223, 98, 73, 0.28);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 800;
+      transition: 150ms ease;
+    }
+
+    .row-action:hover {
+      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .library-empty {
+      margin: 0;
+      padding: 52px 24px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 50;
+      max-width: calc(100vw - 48px);
+      padding: 12px 17px;
+      color: #fff;
+      background: rgba(23, 45, 53, 0.94);
+      border-radius: 10px;
+      box-shadow: 0 12px 30px rgba(23, 45, 53, 0.25);
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
+      transition: 200ms ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .footer-note {
+      margin-top: 17px;
+      color: rgba(23, 45, 53, 0.52);
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 920px) {
+      .topbar {
+        flex-wrap: wrap;
+      }
+
+      .segmented {
+        order: 3;
+        width: 100%;
+      }
+
+      .tab-button {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .top-stat {
+        min-width: 0;
+      }
+
+      .study-layout,
+      .test-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .library-summary {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .library-tabs {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .library-panel-head {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .library-tools {
+        width: 100%;
+        min-width: 0;
+        justify-content: space-between;
+      }
+
+      .side-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .shortcut-card {
+        grid-column: 1 / -1;
+      }
+
+      .quiz-side {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .app-shell {
+        width: min(100% - 22px, 1180px);
+        padding-top: 14px;
+      }
+
+      .brand-mark {
+        width: 39px;
+        height: 39px;
+        border-radius: 12px 12px 12px 4px;
+      }
+
+      .tab-button {
+        padding: 10px 6px;
+        font-size: 12px;
+      }
+
+      .brand-copy strong {
+        font-size: 19px;
+      }
+
+      .brand-copy span,
+      .top-stat span {
+        display: none;
+      }
+
+      .top-stat strong {
+        font-size: 16px;
+      }
+
+      .word-card,
+      .quiz-card {
+        min-height: auto;
+        padding: 23px 20px;
+        border-radius: 21px;
+      }
+
+      .word-main {
+        padding: 42px 0 32px;
+      }
+
+      .headword {
+        font-size: clamp(28px, 9.5vw, 58px);
+      }
+
+      .headword.phrase {
+        font-size: clamp(26px, 8.2vw, 42px);
+      }
+
+      .meaning {
+        font-size: 21px;
+      }
+
+      .example {
+        font-size: 17px;
+      }
+
+      .example-block {
+        padding: 17px 16px;
+      }
+
+      .card-footer {
+        align-items: stretch;
+        flex-direction: column-reverse;
+      }
+
+      .nav-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+      }
+
+      .nav-buttons .button {
+        width: 100%;
+      }
+
+      .learned-button {
+        width: 100%;
+      }
+
+      .side-panel,
+      .quiz-side {
+        grid-template-columns: 1fr;
+      }
+
+      .options {
+        grid-template-columns: 1fr;
+        margin-top: 29px;
+      }
+
+      .quiz-content {
+        min-height: 445px;
+      }
+
+      .quiz-word {
+        font-size: clamp(27px, 9vw, 50px);
+      }
+
+      .quiz-word.phrase {
+        font-size: clamp(24px, 7.8vw, 39px);
+      }
+
+      .option {
+        min-height: 57px;
+      }
+
+      .result-card {
+        min-height: 540px;
+        padding: 28px 20px;
+      }
+
+      .library-summary {
+        padding: 19px;
+        border-radius: 19px;
+      }
+
+      .library-tabs {
+        gap: 5px;
+      }
+
+      .library-tab {
+        min-height: 69px;
+        padding: 10px;
+      }
+
+      .library-tab strong {
+        font-size: 20px;
+      }
+
+      .library-panel {
+        border-radius: 21px;
+      }
+
+      .library-panel-head {
+        padding: 21px 19px 17px;
+      }
+
+      .library-tools {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .library-search {
+        width: 100%;
+      }
+
+      .library-table-wrap {
+        max-height: 66vh;
+      }
+
+      .word-table {
+        min-width: 590px;
+      }
+
+      .word-table .ipa-col,
+      .word-table .ipa-cell {
+        display: none;
+      }
+
+      .word-table th,
+      .word-table td {
+        padding: 11px 10px;
+      }
+
+      .table-index {
+        width: 38px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>
+            <path d="M8 7h8M8 11h6"/>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <strong>Wordloom</strong>
+          <span>Vocabulary studio</span>
+        </div>
+      </div>
+
+      <nav class="segmented" aria-label="学习模式">
+        <button class="tab-button active" type="button" data-screen="study">背单词</button>
+        <button class="tab-button" type="button" data-screen="library">词汇总表</button>
+        <button class="tab-button" type="button" data-screen="test">英译中检测</button>
+      </nav>
+
+      <div class="top-stat">
+        <strong id="totalWordCount">0 个词条</strong>
+        <span>校正后的完整词表</span>
+      </div>
+    </header>
+
+    <section id="studyScreen" class="screen active" aria-label="背单词">
+      <div class="study-layout">
+        <article class="word-card">
+          <div class="card-meta">
+            <span id="wordNumber" class="word-number">WORD 001 / 000</span>
+            <div class="card-actions">
+              <button id="randomButton" class="icon-button" type="button" aria-label="随机单词" title="随机单词">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/>
+                </svg>
+              </button>
+              <button id="speakButton" class="icon-button" type="button" aria-label="朗读单词" title="朗读单词">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="word-main">
+            <h1 id="headword" class="headword">nomadic</h1>
+            <div class="phonetic-row">
+              <span id="phonetic" class="phonetic">/nəʊˈmædɪk/</span>
+              <button id="inlineSpeakButton" class="speak-button" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>
+                </svg>
+                朗读
+              </button>
+            </div>
+
+            <div class="meaning-block">
+              <p class="meaning-label">释义 · Meaning</p>
+              <span id="partOfSpeech" class="pos-badge">adj.</span>
+              <p id="meaning" class="meaning">游牧的；流浪的</p>
+            </div>
+
+            <div class="example-block">
+              <p class="example-label">例句 · Example</p>
+              <p id="example" class="example">The group has maintained a <em>nomadic</em> way of life for centuries.</p>
+            </div>
+          </div>
+
+          <footer class="card-footer">
+            <div class="nav-buttons">
+              <button id="prevButton" class="button secondary" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                上一个
+              </button>
+              <button id="nextButton" class="button primary" type="button">
+                下一个
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+            <button id="learnedButton" class="button learned-button" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+              <span>标记为已掌握</span>
+            </button>
+          </footer>
+        </article>
+
+        <aside class="side-panel">
+          <div class="panel-card">
+            <div class="progress-head">
+              <strong id="learnedCount">0</strong>
+              <span id="learnedPercent">0% 已完成</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <div id="learnedProgress" class="progress-fill"></div>
+            </div>
+            <p class="progress-note">学习进度会自动保存在本机浏览器中。</p>
+          </div>
+
+          <div class="panel-card">
+            <div class="search-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <input id="searchInput" class="search-input" type="search" placeholder="搜索英文或中文释义" autocomplete="off">
+            </div>
+            <div id="searchResults" class="search-results" aria-live="polite"></div>
+            <p id="emptySearch" class="empty-search" hidden>没有找到匹配词条，试试更短的关键词。</p>
+          </div>
+
+          <div class="panel-card shortcut-card">
+            <strong>快捷键</strong><br>
+            <kbd>←</kbd> <kbd>→</kbd> 切换词条 · <kbd>空格</kbd> 朗读
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="libraryScreen" class="screen" aria-label="词汇总表">
+      <div class="library-summary">
+        <div class="library-intro">
+          <p class="library-kicker">Vocabulary library</p>
+          <h1>全部词汇，一张表看清</h1>
+          <p>中文释义默认遮挡。点击单个释义即可查看，也可以一键清除全部遮挡。</p>
+        </div>
+        <div class="library-tabs" role="tablist" aria-label="词汇表分类">
+          <button class="library-tab active" type="button" data-library-view="all" role="tab" aria-selected="true">
+            <strong id="allWordsCount">0</strong>
+            <span>全部词汇</span>
+          </button>
+          <button class="library-tab" type="button" data-library-view="mastered" role="tab" aria-selected="false">
+            <strong id="masteredWordsCount">0</strong>
+            <span>已掌握</span>
+          </button>
+          <button class="library-tab" type="button" data-library-view="unmastered" role="tab" aria-selected="false">
+            <strong id="unmasteredWordsCount">0</strong>
+            <span>未掌握</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="library-panel">
+        <div class="library-panel-head">
+          <div>
+            <h2 id="libraryTitle">全部词汇</h2>
+            <p id="librarySubtitle">共 0 个词条，中文释义已遮挡。</p>
+          </div>
+          <div class="library-tools">
+            <div class="search-wrap library-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <input id="tableSearchInput" class="search-input" type="search" placeholder="搜索英文或中文释义" autocomplete="off">
+            </div>
+            <button id="shuffleOrderButton" class="button secondary small" type="button">随机打乱顺序</button>
+            <button id="revealAllButton" class="button secondary small" type="button">清除全部遮挡</button>
+          </div>
+        </div>
+        <div class="library-table-wrap">
+          <table class="word-table">
+            <thead>
+              <tr>
+                <th aria-label="序号">#</th>
+                <th>单词</th>
+                <th class="ipa-col">音标</th>
+                <th>词性</th>
+                <th>中文释义</th>
+                <th>掌握状态 / 操作</th>
+              </tr>
+            </thead>
+            <tbody id="libraryBody"></tbody>
+          </table>
+        </div>
+        <p id="libraryEmpty" class="library-empty" hidden>没有找到符合条件的词条。</p>
+      </div>
+    </section>
+
+    <section id="testScreen" class="screen" aria-label="英译中检测">
+      <div class="test-wrap">
+        <article id="quizCard" class="quiz-card">
+          <div class="quiz-top">
+            <span id="quizProgressText" class="quiz-progress-text">第 1 / 20 题</span>
+            <span id="scorePill" class="score-pill">得分 0</span>
+          </div>
+          <div class="quiz-progress" aria-hidden="true">
+            <div id="quizProgress" class="quiz-progress-fill"></div>
+          </div>
+
+          <div class="quiz-content">
+            <p class="prompt-label">Choose the best Chinese meaning</p>
+            <div class="quiz-word-row">
+              <h2 id="quizWord" class="quiz-word">nomadic</h2>
+              <button id="quizSpeakButton" class="icon-button" type="button" aria-label="朗读题目" title="朗读题目">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+                </svg>
+              </button>
+            </div>
+
+            <div id="options" class="options" role="group" aria-label="中文释义选项"></div>
+            <div id="quizFeedback" class="quiz-feedback" aria-live="polite">
+              <span id="feedbackIcon" class="feedback-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+              </span>
+              <span id="feedbackText"></span>
+            </div>
+          </div>
+        </article>
+
+        <article id="resultCard" class="result-card">
+          <div class="result-inner">
+            <div id="resultRing" class="result-ring">
+              <div id="resultScore" class="result-score">0<span>正确率</span></div>
+            </div>
+            <h2 id="resultTitle" class="result-title">检测完成</h2>
+            <p id="resultCopy" class="result-copy">本轮完成了 20 道题。</p>
+            <div class="result-actions">
+              <button id="retryButton" class="button primary" type="button">再测一次</button>
+              <button id="backStudyButton" class="button secondary" type="button">返回背单词</button>
+            </div>
+          </div>
+        </article>
+
+        <aside class="quiz-side">
+          <div class="panel-card">
+            <h3 class="side-title">本轮表现</h3>
+            <div class="stat-grid">
+              <div class="stat-box">
+                <strong id="sideCorrect">0</strong>
+                <span>答对</span>
+              </div>
+              <div class="stat-box">
+                <strong id="sideWrong">0</strong>
+                <span>答错</span>
+              </div>
+              <div class="stat-box">
+                <strong id="sideStreak">0</strong>
+                <span>连对</span>
+              </div>
+              <div class="stat-box">
+                <strong id="sideBest">0</strong>
+                <span>最佳连对</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <h3 class="side-title">题目数量</h3>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>本轮检测</span>
+                <strong id="questionLimitLabel">20 题</strong>
+              </div>
+              <input id="questionLimit" type="range" min="10" max="100" step="10" value="20" aria-label="题目数量">
+              <div class="range-labels"><span>10</span><span>100</span></div>
+            </div>
+            <div class="quiz-actions">
+              <button id="nextQuestionButton" class="button accent" type="button" disabled>下一题</button>
+              <button id="restartButton" class="button secondary" type="button">重新开始</button>
+            </div>
+          </div>
+
+          <div class="panel-card shortcut-card">
+            <strong>答题快捷键</strong><br>
+            <kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> <kbd>D</kbd> 选择答案 · <kbd>Enter</kbd> 下一题
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <p class="footer-note">基于所给词汇文档整理 · 已校正明显误拼并去重 · 数据与界面均包含在单个 HTML 中</p>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const WORDS = [{"word":"nomadic","ipa":"/nəʊˈmædɪk/","pos":"adj.","meaning":"游牧的；流浪的","example":"The nomadic family moved with the seasons."},{"word":"stigmatize","ipa":"/ˈstɪɡmətaɪz/","pos":"v.","meaning":"污名化；指责","example":"The campaign aims to destigmatize rather than stigmatize mental illness."},{"word":"taboo","ipa":"/təˈbuː/","pos":"n. / adj.","meaning":"禁忌；忌讳的","example":"In many cultures, it is taboo to discuss a person's salary."},{"word":"visceral","ipa":"/ˈvɪsərəl/","pos":"adj.","meaning":"内心的；发自肺腑的；内脏的","example":"The film creates a visceral sense of fear."},{"word":"palate","ipa":"/ˈpælət/","pos":"n.","meaning":"味觉；上腭","example":"This wine is too sweet for my palate."},{"word":"retailer","ipa":"/ˈriːteɪlə(r)/","pos":"n.","meaning":"零售商","example":"The online retailer promised free delivery."},{"word":"allergy","ipa":"/ˈælədʒi/","pos":"n.","meaning":"过敏；反感","example":"She has a serious allergy to peanuts."},{"word":"barcode","ipa":"/ˈbɑːkəʊd/","pos":"n.","meaning":"条形码","example":"The cashier scanned the barcode on each package."},{"word":"dupe","ipa":"/djuːp/","pos":"v. / n.","meaning":"欺骗；受骗者","example":"The fake advertisement was designed to dupe customers."},{"word":"ramification","ipa":"/ˌræmɪfɪˈkeɪʃn/","pos":"n.","meaning":"后果；衍生影响","example":"The decision could have serious ramifications for public health."},{"word":"commission","ipa":"/kəˈmɪʃn/","pos":"n. / v.","meaning":"委员会；佣金；委托","example":"The city set up a commission to investigate the problem."},{"word":"scandal","ipa":"/ˈskændl/","pos":"n.","meaning":"丑闻；丑事","example":"The company never recovered from the financial scandal."},{"word":"horseplay","ipa":"/ˈhɔːspleɪ/","pos":"n.","meaning":"喧闹嬉戏；打闹","example":"The teacher warned the boys to stop their horseplay."},{"word":"fallout","ipa":"/ˈfɔːlaʊt/","pos":"n.","meaning":"严重后果；放射性尘降","example":"The political fallout from the mistake lasted for years."},{"word":"vertical","ipa":"/ˈvɜːtɪkl/","pos":"adj. / n.","meaning":"垂直的；竖线","example":"The climber followed a nearly vertical rock face."},{"word":"ingest","ipa":"/ɪnˈdʒest/","pos":"v.","meaning":"摄取；咽下","example":"Some birds ingest small stones to help digest food."},{"word":"locust","ipa":"/ˈləʊkəst/","pos":"n.","meaning":"蝗虫","example":"A swarm of locusts destroyed most of the crops."},{"word":"shun","ipa":"/ʃʌn/","pos":"v.","meaning":"回避；避开","example":"He chose to shun publicity after the trial."},{"word":"lore","ipa":"/lɔː(r)/","pos":"n.","meaning":"传说；传统知识","example":"Local lore says the lake is home to a hidden creature."},{"word":"in effect","ipa":"/ɪn ɪˈfekt/","pos":"phrase","meaning":"实际上；生效","example":"The rule has been in effect since January."},{"word":"virtually","ipa":"/ˈvɜːtʃuəli/","pos":"adv.","meaning":"几乎；实际上","example":"The two designs are virtually identical."},{"word":"supposedly","ipa":"/səˈpəʊzɪdli/","pos":"adv.","meaning":"据说；据称","example":"The castle is supposedly haunted."},{"word":"stable","ipa":"/ˈsteɪbl/","pos":"adj. / n.","meaning":"稳定的；马厩","example":"The patient's condition is now stable."},{"word":"edible","ipa":"/ˈedəbl/","pos":"adj.","meaning":"可食用的","example":"Only a few of the mushrooms in the forest are edible."},{"word":"stem from","ipa":"/stem frɒm/","pos":"phrase","meaning":"起源于；由……造成","example":"Many health problems stem from poor sleep."},{"word":"since the cradle","ipa":"/sɪns ðə ˈkreɪdl/","pos":"phrase","meaning":"从摇篮时期起；自幼","example":"She has been surrounded by music since the cradle."},{"word":"stigma","ipa":"/ˈstɪɡmə/","pos":"n.","meaning":"污名；耻辱","example":"There is still a stigma attached to asking for help."},{"word":"grind","ipa":"/ɡraɪnd/","pos":"v. / n.","meaning":"磨碎；苦干","example":"The machine grinds coffee beans in seconds."},{"word":"in disgust","ipa":"/ɪn dɪsˈɡʌst/","pos":"phrase","meaning":"厌恶地；反感地","example":"She turned away in disgust at the smell."},{"word":"game","ipa":"/ɡeɪm/","pos":"n. / adj.","meaning":"游戏；愿意参与的","example":"The children invented a new game after school."},{"word":"hectare","ipa":"/ˈhekteə(r)/","pos":"n.","meaning":"公顷","example":"The farm covers more than fifty hectares."},{"word":"prevalent","ipa":"/ˈprevələnt/","pos":"adj.","meaning":"普遍的；流行的","example":"This belief is still prevalent in rural areas."},{"word":"substitution","ipa":"/ˌsʌbstɪˈtjuːʃn/","pos":"n.","meaning":"替代；替换","example":"The coach made a substitution late in the match."},{"word":"allergic","ipa":"/əˈlɜːdʒɪk/","pos":"adj.","meaning":"过敏的；反感的","example":"He is allergic to cats."},{"word":"a suite of","ipa":"/ə swiːt əv/","pos":"phrase","meaning":"一套；一系列","example":"The hotel offers a suite of services for business guests."},{"word":"soy","ipa":"/sɔɪ/","pos":"n.","meaning":"大豆；酱油","example":"Soy is an important source of protein in many diets."},{"word":"enact","ipa":"/ɪˈnækt/","pos":"v.","meaning":"制定法律；实施；扮演","example":"Parliament voted to enact stricter environmental laws."},{"word":"aversion","ipa":"/əˈvɜːʃn/","pos":"n.","meaning":"厌恶；反感","example":"He has a strong aversion to crowded places."},{"word":"fret about","ipa":"/fret əˈbaʊt/","pos":"phrase","meaning":"为……担忧","example":"There is no need to fret about a minor delay."},{"word":"planetary","ipa":"/ˈplænətri/","pos":"adj.","meaning":"行星的；全球性的","example":"Planetary health depends on protecting ecosystems."},{"word":"swine-flu","ipa":"/ˈswaɪn fluː/","pos":"n.","meaning":"猪流感","example":"The term swine flu refers to a type of influenza virus."},{"word":"vat","ipa":"/væt/","pos":"n.","meaning":"大桶；染缸","example":"The cheese is left to mature in a large vat."},{"word":"conservatism","ipa":"/kənˈsɜːvətɪzəm/","pos":"n.","meaning":"保守主义","example":"The party has traditionally emphasized social conservatism."},{"word":"endorse","ipa":"/ɪnˈdɔːs/","pos":"v.","meaning":"赞同；背书；代言","example":"Several doctors endorsed the new health campaign."},{"word":"aspire","ipa":"/əˈspaɪə(r)/","pos":"v.","meaning":"渴望；立志","example":"She aspires to become a research scientist."},{"word":"superficial","ipa":"/ˌsuːpəˈfɪʃl/","pos":"adj.","meaning":"表面的；肤浅的","example":"The damage was minor and only superficial."},{"word":"reservation","ipa":"/ˌrezəˈveɪʃn/","pos":"n.","meaning":"预订；保留意见","example":"I made a reservation for two at the restaurant."},{"word":"account for","ipa":"/əˈkaʊnt fə(r)/","pos":"phrase","meaning":"解释；占比","example":"Renewable energy now accounts for a third of supply."},{"word":"constitute","ipa":"/ˈkɒnstɪtjuːt/","pos":"v.","meaning":"构成；设立","example":"Women constitute more than half of the workforce."},{"word":"concession","ipa":"/kənˈseʃn/","pos":"n.","meaning":"让步；优惠","example":"The union won a small concession on working hours."},{"word":"grim","ipa":"/ɡrɪm/","pos":"adj.","meaning":"严峻的；阴沉的","example":"The report paints a grim picture of the future."},{"word":"turn up one's nose","ipa":"/tɜːn ʌp wʌnz nəʊz/","pos":"phrase","meaning":"嗤之以鼻；看不上","example":"He turned up his nose at the cheap furniture."},{"word":"fuss","ipa":"/fʌs/","pos":"n. / v.","meaning":"大惊小怪；忙乱","example":"Please don't make such a fuss over a small mistake."},{"word":"gluten","ipa":"/ˈɡluːtn/","pos":"n.","meaning":"面筋；谷蛋白","example":"This bread is made without gluten."},{"word":"tuna","ipa":"/ˈtjuːnə/","pos":"n.","meaning":"金枪鱼","example":"She made a sandwich with tuna and lettuce."},{"word":"fretting","ipa":"/ˈfretɪŋ/","pos":"n. / v.","meaning":"焦虑；担忧（fret 的现在分词）","example":"Fretting will not solve the problem."},{"word":"substitute","ipa":"/ˈsʌbstɪtjuːt/","pos":"n. / v.","meaning":"替代物；用……替代","example":"You can substitute olive oil for butter."},{"word":"lucrative","ipa":"/ˈluːkrətɪv/","pos":"adj.","meaning":"利润丰厚的；赚钱的","example":"The artist turned her hobby into a lucrative business."},{"word":"forge","ipa":"/fɔːdʒ/","pos":"v.","meaning":"伪造；锻造；建立","example":"The two universities forged a long-term partnership."},{"word":"fillet","ipa":"/ˈfɪlɪt/","pos":"n. / v.","meaning":"鱼柳；去骨","example":"The chef prepared a fillet of salmon."},{"word":"legislate","ipa":"/ˈledʒɪsleɪt/","pos":"v.","meaning":"立法；制定法律","example":"The government plans to legislate against misleading advertising."},{"word":"nitrogen","ipa":"/ˈnaɪtrədʒən/","pos":"n.","meaning":"氮；氮气","example":"Plants need nitrogen to grow properly."},{"word":"step in","ipa":"/step ɪn/","pos":"phrase","meaning":"介入；调解","example":"A senior manager stepped in to resolve the dispute."},{"word":"inhumane","ipa":"/ˌɪnhjuːˈmeɪn/","pos":"adj.","meaning":"不人道的；残忍的","example":"The prisoners were kept in inhumane conditions."},{"word":"loath","ipa":"/ləʊθ/","pos":"adj.","meaning":"不愿意的；勉强的","example":"She was loath to admit that she had made a mistake."},{"word":"Bible","ipa":"/ˈbaɪbl/","pos":"n.","meaning":"《圣经》；权威著作","example":"The book is often regarded as the Bible of modern design."},{"word":"revolt","ipa":"/rɪˈvəʊlt/","pos":"n. / v.","meaning":"反抗；起义；使反感","example":"The unfair taxes eventually led to a revolt."},{"word":"superstitious","ipa":"/ˌsuːpəˈstɪʃəs/","pos":"adj.","meaning":"迷信的","example":"He avoids walking under ladders because he is superstitious."},{"word":"superstition","ipa":"/ˌsuːpəˈstɪʃn/","pos":"n.","meaning":"迷信；迷信观念","example":"It is only a superstition that black cats bring bad luck."},{"word":"peasant","ipa":"/ˈpeznt/","pos":"n.","meaning":"农民；小农","example":"The peasant family worked the land for generations."},{"word":"re-enactment","ipa":"/ˌriː ɪˈnæktmənt/","pos":"n.","meaning":"重演；再现","example":"The museum held a historical battle re-enactment."},{"word":"humble","ipa":"/ˈhʌmbl/","pos":"adj. / v.","meaning":"谦逊的；简陋的；使谦卑","example":"Despite his success, he remained humble."},{"word":"cricket","ipa":"/ˈkrɪkɪt/","pos":"n.","meaning":"板球；蟋蟀","example":"Cricket is extremely popular in India."},{"word":"collective","ipa":"/kəˈlektɪv/","pos":"adj. / n.","meaning":"集体的；集体","example":"Climate change requires collective action."},{"word":"allocate","ipa":"/ˈæləkeɪt/","pos":"v.","meaning":"分配；拨给","example":"The school allocated more funds to science education."},{"word":"entitlement","ipa":"/ɪnˈtaɪtlmənt/","pos":"n.","meaning":"权利；应得的待遇","example":"Some people regard healthcare as a basic entitlement."},{"word":"stick","ipa":"/stɪk/","pos":"v. / n.","meaning":"粘贴；坚持；棍子","example":"The sticker will stick to almost any smooth surface."},{"word":"heed","ipa":"/hiːd/","pos":"v. / n.","meaning":"留意；听从","example":"The company failed to heed repeated safety warnings."},{"word":"staple","ipa":"/ˈsteɪpl/","pos":"n. / adj.","meaning":"主食；主要产品；基本的","example":"Rice is a staple food in many parts of Asia."},{"word":"perk","ipa":"/pɜːk/","pos":"n.","meaning":"额外待遇；福利","example":"Free meals are one of the job's main perks."},{"word":"upswing","ipa":"/ˈʌpswɪŋ/","pos":"n.","meaning":"回升；增长","example":"The economy is beginning to show an upswing."},{"word":"internship","ipa":"/ˈɪntɜːnʃɪp/","pos":"n.","meaning":"实习；实习期","example":"She completed a summer internship at a law firm."},{"word":"boomerang","ipa":"/ˈbuːməræŋ/","pos":"n. / v.","meaning":"回旋镖；反噬","example":"The policy could boomerang on the government."},{"word":"trophy","ipa":"/ˈtrəʊfi/","pos":"n.","meaning":"奖杯；战利品","example":"The team raised the trophy after the final whistle."},{"word":"wind up","ipa":"/waɪnd ʌp/","pos":"phrase","meaning":"最终沦落到；结束；使紧张","example":"If we leave now, we may wind up at the airport too early."},{"word":"pamper","ipa":"/ˈpæmpə(r)/","pos":"v.","meaning":"娇惯；悉心照顾","example":"The spa staff pamper every guest."},{"word":"radical","ipa":"/ˈrædɪkl/","pos":"adj. / n.","meaning":"激进的；根本的；激进分子","example":"The proposal calls for radical changes to the tax system."},{"word":"relentless","ipa":"/rɪˈlentləs/","pos":"adj.","meaning":"持续不断的；无情的","example":"Her relentless effort finally paid off."},{"word":"economy sours","ipa":"/ɪˈkɒnəmi ˈsaʊəz/","pos":"phrase","meaning":"经济恶化","example":"Consumer spending falls sharply when the economy sours."},{"word":"hammock","ipa":"/ˈhæmək/","pos":"n.","meaning":"吊床","example":"He tied a hammock between two palm trees."},{"word":"consultancy","ipa":"/kənˈsʌltənsi/","pos":"n.","meaning":"咨询公司；咨询业","example":"She works for a management consultancy in London."},{"word":"inverse","ipa":"/ˌɪnˈvɜːs/","pos":"adj. / n.","meaning":"相反的；倒数","example":"Stress often has an inverse effect on performance."},{"word":"an inverse relationship between ... and ...","ipa":"/ən ˈɪnvɜːs rɪˈleɪʃnʃɪp bɪˈtwiːn/","pos":"phrase","meaning":"……与……之间的反比关系","example":"Researchers found an inverse relationship between exercise and stress."},{"word":"axe","ipa":"/æks/","pos":"v. / n.","meaning":"削减；解雇；斧头","example":"The company plans to axe hundreds of jobs."},{"word":"in the wake of sth.","ipa":"/ɪn ðə weɪk əv/","pos":"phrase","meaning":"在……之后；作为……的后果","example":"New safety rules were introduced in the wake of the accident."},{"word":"ardour","ipa":"/ˈɑːdə(r)/","pos":"n.","meaning":"热情；激情","example":"He pursued the project with great ardour."},{"word":"take a battering from","ipa":"/teɪk ə ˈbætərɪŋ frəm/","pos":"phrase","meaning":"遭到……的严重打击","example":"The local economy took a battering from the storm."},{"word":"revoke","ipa":"/rɪˈvəʊk/","pos":"v.","meaning":"撤销；废除","example":"The authorities may revoke his driving licence."},{"word":"hazy","ipa":"/ˈheɪzi/","pos":"adj.","meaning":"朦胧的；模糊的","example":"The details of the agreement remain hazy."},{"word":"rollout","ipa":"/ˈrəʊlaʊt/","pos":"n.","meaning":"推出；推广部署","example":"The company delayed the nationwide rollout of its new app."},{"word":"forefront","ipa":"/ˈfɔːfrʌnt/","pos":"n.","meaning":"最前沿；前列","example":"The scientist is at the forefront of cancer research."},{"word":"democracy","ipa":"/dɪˈmɒkrəsi/","pos":"n.","meaning":"民主；民主国家","example":"Free elections are a central feature of democracy."},{"word":"pull one's weight","ipa":"/pʊl wʌnz weɪt/","pos":"phrase","meaning":"尽自己的一份力","example":"Everyone must pull their weight if the project is to succeed."},{"word":"brat","ipa":"/bræt/","pos":"n.","meaning":"顽童；被宠坏的孩子","example":"The film features a rich brat who learns to be less selfish."},{"word":"spoiled","ipa":"/spɔɪld/","pos":"adj.","meaning":"被宠坏的；变质的","example":"The spoiled child refused to share his toys."},{"word":"take sb. down a peg","ipa":"/teɪk ˈsʌmbədi daʊn ə peɡ/","pos":"phrase","meaning":"挫某人的傲气","example":"The defeat took the champion down a peg or two."},{"word":"school of hard knocks","ipa":"/skuːl əv hɑːd nɒks/","pos":"phrase","meaning":"艰苦环境的历练","example":"He learned to run a business through the school of hard knocks."},{"word":"notorious","ipa":"/nəʊˈtɔːriəs/","pos":"adj.","meaning":"臭名昭著的","example":"The area is notorious for its traffic jams."},{"word":"counselor","ipa":"/ˈkaʊnsələ(r)/","pos":"n.","meaning":"顾问；辅导员；律师","example":"She spoke to a school counselor about exam stress."},{"word":"inflated","ipa":"/ɪnˈfleɪtɪd/","pos":"adj.","meaning":"过高的；膨胀的","example":"The report was based on hugely inflated figures."},{"word":"come of age","ipa":"/kʌm əv eɪdʒ/","pos":"phrase","meaning":"成年；走向成熟","example":"The industry has come of age over the past decade."},{"word":"in flux","ipa":"/ɪn flʌks/","pos":"phrase","meaning":"处于不断变化中","example":"The company's leadership is still in flux."},{"word":"pajamas","ipa":"/pəˈdʒɑːməz/","pos":"n.","meaning":"睡衣","example":"He was still in his pajamas when the guests arrived."},{"word":"favour","ipa":"/ˈfeɪvə(r)/","pos":"n. / v.","meaning":"支持；偏爱；恩惠","example":"Most residents favour building a new library."},{"word":"fall out of flavour with","ipa":"/fɔːl aʊt əv ˈfleɪvə wɪð/","pos":"phrase","meaning":"不再受……欢迎","example":"The product fell out of flavour with younger consumers."},{"word":"hospitality","ipa":"/ˌhɒspɪˈtæləti/","pos":"n.","meaning":"殷勤款待；好客","example":"We thanked our hosts for their generous hospitality."},{"word":"tarnish","ipa":"/ˈtɑːnɪʃ/","pos":"v. / n.","meaning":"败坏名声；使失去光泽；污点","example":"The scandal tarnished the organization's reputation."},{"word":"opposite numbers","ipa":"/ˈɒpəzɪt ˈnʌmbəz/","pos":"phrase","meaning":"对应的同级人员","example":"The two ministers met with their opposite numbers."},{"word":"counterpart","ipa":"/ˈkaʊntəpɑːt/","pos":"n.","meaning":"对应的人或物；副本","example":"The British prime minister spoke to his French counterpart."},{"word":"frantic","ipa":"/ˈfræntɪk/","pos":"adj.","meaning":"疯狂的；手忙脚乱的","example":"There was a frantic search for the missing child."},{"word":"hectic","ipa":"/ˈhektɪk/","pos":"adj.","meaning":"忙碌的；紧张纷乱的","example":"It has been a hectic week at the office."},{"word":"nervy","ipa":"/ˈnɜːvi/","pos":"adj.","meaning":"有勇气的；令人紧张的","example":"It was a nervy decision to invest everything at once."},{"word":"lay off workers","ipa":"/leɪ ɒf ˈwɜːkəz/","pos":"phrase","meaning":"解雇工人","example":"The factory had to lay off workers during the downturn."},{"word":"sector","ipa":"/ˈsektə(r)/","pos":"n.","meaning":"部门；行业；区域","example":"Technology is the fastest-growing sector of the economy."},{"word":"portray","ipa":"/pɔːˈtreɪ/","pos":"v.","meaning":"描绘；扮演","example":"The novel portrays life in a small fishing village."},{"word":"arsenal","ipa":"/ˈɑːsənl/","pos":"n.","meaning":"武器库；大量手段","example":"The government used its entire legal arsenal to challenge the rule."},{"word":"vie","ipa":"/vaɪ/","pos":"v.","meaning":"竞争；争夺","example":"Several firms are vying for the contract."},{"word":"sit the ... exam","ipa":"/sɪt ðə ɪɡˈzæm/","pos":"phrase","meaning":"参加……考试","example":"She will sit the final exam in June."},{"word":"hobby horse","ipa":"/ˈhɒbi hɔːs/","pos":"n.","meaning":"反复谈论的话题；心爱话题","example":"Fair taxation is his personal hobby horse."},{"word":"edge up/down","ipa":"/edʒ ʌp / edʒ daʊn/","pos":"phrase","meaning":"缓慢上升／下降","example":"Prices edged up slightly in the final quarter."},{"word":"Ltd.","ipa":"/ˈlɪmɪtɪd/","pos":"abbr.","meaning":"有限公司","example":"The supplier is a privately owned company, Green Ltd."},{"word":"anonymous","ipa":"/əˈnɒnɪməs/","pos":"adj.","meaning":"匿名的；无名的","example":"The donation came from an anonymous supporter."},{"word":"poll","ipa":"/pəʊl/","pos":"n. / v.","meaning":"民意调查；投票","example":"A recent poll showed strong support for the proposal."},{"word":"in part ..., and also ...","ipa":"/ɪn pɑːt ... ænd ˈɔːlsəʊ/","pos":"phrase","meaning":"部分因为……，同时也因为……","example":"The delay was in part technical, and also caused by poor planning."},{"word":"agreeable","ipa":"/əˈɡriːəbl/","pos":"adj.","meaning":"令人愉快的；同意的","example":"The hotel staff were friendly and agreeable."},{"word":"tagline","ipa":"/ˈtæɡlaɪn/","pos":"n.","meaning":"广告标语；品牌口号","example":"The company changed its tagline to appeal to younger buyers."},{"word":"rechristen","ipa":"/ˌriːˈkrɪsn/","pos":"v.","meaning":"重新命名","example":"The ship was rechristened after its restoration."},{"word":"prompting a lawsuit","ipa":"/ˈprɒmptɪŋ ə ˈlɔːsuːt/","pos":"phrase","meaning":"引发诉讼","example":"The company published false claims, prompting a lawsuit."},{"word":"catalog","ipa":"/ˈkætəlɒɡ/","pos":"n. / v.","meaning":"目录；编目","example":"The new products are listed in the autumn catalog."},{"word":"linguist","ipa":"/ˈlɪŋɡwɪst/","pos":"n.","meaning":"语言学家；通晓多种语言的人","example":"The linguist studies how children acquire language."},{"word":"morpheme","ipa":"/ˈmɔːfiːm/","pos":"n.","meaning":"语素；词素","example":"The word “unhappiness” contains three morphemes."},{"word":"be mentioned in the same breath as","ipa":"/biː ˈmenʃnd ɪn ðə seɪm breθ æz/","pos":"phrase","meaning":"与……相提并论","example":"Her work is often mentioned in the same breath as the great classics."},{"word":"commitment to","ipa":"/kəˈmɪtmənt tə/","pos":"phrase","meaning":"对……的投入；承诺","example":"The university has a strong commitment to research."},{"word":"agile","ipa":"/ˈædʒaɪl/","pos":"adj.","meaning":"敏捷的；灵活的","example":"The company adopted an agile approach to product development."},{"word":"immune to","ipa":"/ɪˈmjuːn tə/","pos":"phrase","meaning":"对……免疫；不受……影响","example":"No industry is immune to technological change."},{"word":"lame","ipa":"/leɪm/","pos":"adj.","meaning":"站不住脚的；无说服力的；瘸的","example":"He gave a lame excuse for arriving late."},{"word":"ozone","ipa":"/ˈəʊzəʊn/","pos":"n.","meaning":"臭氧","example":"The ozone layer protects life from harmful radiation."},{"word":"flourish","ipa":"/ˈflʌrɪʃ/","pos":"v. / n.","meaning":"繁荣；茁壮成长","example":"Small businesses began to flourish in the city."},{"word":"undermine","ipa":"/ˌʌndəˈmaɪn/","pos":"v.","meaning":"削弱；破坏","example":"Constant criticism can undermine a child's confidence."},{"word":"explicitly","ipa":"/ɪkˈsplɪsɪtli/","pos":"adv.","meaning":"明确地；直言不讳地","example":"The contract explicitly forbids subletting."},{"word":"remedy","ipa":"/ˈremədi/","pos":"n. / v.","meaning":"补救办法；纠正","example":"There is no easy remedy for the shortage of housing."},{"word":"defy","ipa":"/dɪˈfaɪ/","pos":"v.","meaning":"违抗；使难以做到","example":"A few students defied the ban on mobile phones."},{"word":"reap","ipa":"/riːp/","pos":"v.","meaning":"收获；获得","example":"The company is now reaping the rewards of its early investment."},{"word":"serviceable","ipa":"/ˈsɜːvɪsəbl/","pos":"adj.","meaning":"尚可使用的；耐用的","example":"The old computer is slow but still serviceable."},{"word":"battery","ipa":"/ˈbætri/","pos":"n.","meaning":"电池；一系列","example":"The battery lasts for about ten hours."},{"word":"suspiciously","ipa":"/səˈspɪʃəsli/","pos":"adv.","meaning":"可疑地；令人怀疑地","example":"The fire started suspiciously soon after the shop closed."},{"word":"dispute","ipa":"/dɪˈspjuːt/","pos":"n. / v.","meaning":"争端；质疑","example":"The two sides remain locked in a bitter dispute."},{"word":"suburbanite","ipa":"/səˈbɜːbənaɪt/","pos":"n.","meaning":"郊区居民","example":"Many suburbanites commute to the city by train."},{"word":"connotation","ipa":"/ˌkɒnəˈteɪʃn/","pos":"n.","meaning":"内涵；联想意义","example":"The word “cheap” has a negative connotation."},{"word":"denotation","ipa":"/ˌdiːnəʊˈteɪʃn/","pos":"n.","meaning":"字面意义；本义","example":"A word's denotation is its explicit dictionary meaning."},{"word":"evoke","ipa":"/ɪˈvəʊk/","pos":"v.","meaning":"唤起；引起","example":"The smell of pine trees evokes memories of winter."},{"word":"scheme","ipa":"/skiːm/","pos":"n. / v.","meaning":"计划；方案；图谋","example":"The city launched a scheme to reduce food waste."},{"word":"buck","ipa":"/bʌk/","pos":"n. / v.","meaning":"美元；雄鹿；抵制","example":"He earned a few extra bucks by repairing bicycles."},{"word":"lawsuit","ipa":"/ˈlɔːsuːt/","pos":"n.","meaning":"诉讼；官司","example":"The workers filed a lawsuit against their former employer."},{"word":"apparel","ipa":"/əˈpærəl/","pos":"n.","meaning":"服装；衣着","example":"The store sells outdoor apparel and equipment."},{"word":"derive","ipa":"/dɪˈraɪv/","pos":"v.","meaning":"获得；源于；推导","example":"Many medicines are derived from plants."},{"word":"fragment","ipa":"/ˈfræɡmənt/","pos":"n. / v.","meaning":"碎片；片段；分裂","example":"Police found fragments of glass at the scene."},{"word":"arduous","ipa":"/ˈɑːdjuəs/","pos":"adj.","meaning":"艰苦的；费力的","example":"The volunteers completed an arduous journey across the desert."},{"word":"meter","ipa":"/ˈmiːtə(r)/","pos":"n.","meaning":"韵律；计量器；米","example":"The poem has a steady rhythmic meter."},{"word":"be enamored of","ipa":"/biː ɪˈnæməd əv/","pos":"phrase","meaning":"迷恋；倾心于","example":"He is enamored of the idea of starting his own company."},{"word":"emit","ipa":"/iˈmɪt/","pos":"v.","meaning":"发出；排放","example":"The device emits a quiet beep every minute."},{"word":"expendable","ipa":"/ɪkˈspendəbl/","pos":"adj.","meaning":"可牺牲的；消耗性的","example":"The equipment was cheap and considered expendable."},{"word":"proclamation","ipa":"/ˌprɒkləˈmeɪʃn/","pos":"n.","meaning":"公告；宣言","example":"The king issued a proclamation announcing the new law."},{"word":"equivalent","ipa":"/ɪˈkwɪvələnt/","pos":"adj. / n.","meaning":"等同的；等价物","example":"One kilometre is equivalent to one thousand metres."},{"word":"lobby","ipa":"/ˈlɒbi/","pos":"n. / v.","meaning":"大厅；游说","example":"The group spent millions lobbying members of parliament."},{"word":"parliament","ipa":"/ˈpɑːləmənt/","pos":"n.","meaning":"议会；国会","example":"The bill was approved by parliament after a long debate."},{"word":"hail","ipa":"/heɪl/","pos":"v. / n.","meaning":"赞扬；招呼；冰雹","example":"Critics hailed the novel as a major achievement."},{"word":"impulse","ipa":"/ˈɪmpʌls/","pos":"n.","meaning":"冲动；推动力","example":"She bought the dress on impulse and later regretted it."},{"word":"wreck","ipa":"/rek/","pos":"n. / v.","meaning":"残骸；毁坏","example":"The storm wrecked several boats along the coast."},{"word":"motorist","ipa":"/ˈməʊtərɪst/","pos":"n.","meaning":"驾车者；汽车驾驶员","example":"Motorists were advised to avoid the flooded road."},{"word":"westbound","ipa":"/ˈwestbaʊnd/","pos":"adj.","meaning":"向西行驶的","example":"The westbound train leaves at two o'clock."},{"word":"trooper","ipa":"/ˈtruːpə(r)/","pos":"n.","meaning":"士兵；州警察","example":"A state trooper stopped the car near the border."},{"word":"product line","ipa":"/ˈprɒdʌkt laɪn/","pos":"n.","meaning":"产品系列","example":"The company expanded its product line to include skincare."},{"word":"sodium","ipa":"/ˈsəʊdiəm/","pos":"n.","meaning":"钠","example":"Too much sodium in the diet can raise blood pressure."},{"word":"capital punishment","ipa":"/ˈkæpɪtl ˈpʌnɪʃmənt/","pos":"n.","meaning":"死刑","example":"Several countries have abolished capital punishment."},{"word":"have to do with","ipa":"/hæv tə duː wɪð/","pos":"phrase","meaning":"与……有关","example":"The problem may have to do with a faulty connection."},{"word":"register","ipa":"/ˈredʒɪstə(r)/","pos":"v. / n.","meaning":"登记；注册；显示出；登记簿","example":"More than a thousand people registered for the event."},{"word":"It is up to sb. to do sth.","ipa":"/ɪt ɪz ʌp tə ˈsʌmbədi tə duː ˈsʌmθɪŋ/","pos":"sentence pattern","meaning":"由某人决定做某事","example":"It is up to the committee to decide the final date."},{"word":"for all + noun","ipa":"/fɔːr ɔːl/","pos":"phrase pattern","meaning":"尽管有……；虽然","example":"For all his experience, he still makes simple mistakes."},{"word":"penny","ipa":"/ˈpeni/","pos":"n.","meaning":"便士；一分钱","example":"The old machine accepts a one-penny coin."},{"word":"bless with sth.","ipa":"/bles wɪð/","pos":"phrase","meaning":"赋予；使有幸拥有","example":"She was blessed with a remarkable memory."},{"word":"tide","ipa":"/taɪd/","pos":"n. / v.","meaning":"潮汐；趋势；帮助渡过","example":"The tide is expected to rise this evening."},{"word":"pledge","ipa":"/pledʒ/","pos":"n. / v.","meaning":"承诺；保证","example":"The company pledged to cut carbon emissions by half."},{"word":"decay","ipa":"/dɪˈkeɪ/","pos":"v. / n.","meaning":"腐烂；衰退","example":"Fruit begins to decay quickly in warm weather."},{"word":"reason","ipa":"/ˈriːzn/","pos":"v. / n.","meaning":"推理；劝导；原因","example":"We tried to reason with the angry customer."},{"word":"come into force","ipa":"/kʌm ˈɪntə fɔːs/","pos":"phrase","meaning":"开始生效","example":"The new regulations will come into force next month."},{"word":"compulsory","ipa":"/kəmˈpʌlsəri/","pos":"adj.","meaning":"强制的；义务的","example":"Education is compulsory for children under sixteen."},{"word":"render","ipa":"/ˈrendə(r)/","pos":"v.","meaning":"使成为；提供；表达","example":"The accident rendered the road unsafe for travel."},{"word":"skyrocket","ipa":"/ˈskaɪrɒkɪt/","pos":"v.","meaning":"猛增；飞涨","example":"House prices skyrocketed during the boom."},{"word":"refrigerate","ipa":"/rɪˈfrɪdʒəreɪt/","pos":"v.","meaning":"冷藏；冷冻保存","example":"Refrigerate the sauce after opening the jar."},{"word":"assert","ipa":"/əˈsɜːt/","pos":"v.","meaning":"断言；维护","example":"The author asserts that the policy has failed."},{"word":"convicted","ipa":"/kənˈvɪktɪd/","pos":"adj.","meaning":"被定罪的","example":"The convicted fraudster was ordered to repay the money."},{"word":"appeal","ipa":"/əˈpiːl/","pos":"n. / v.","meaning":"吸引力；恳求；上诉","example":"The charity's appeal raised more than a million pounds."},{"word":"nonetheless","ipa":"/ˌnʌnðəˈles/","pos":"adv.","meaning":"尽管如此；然而","example":"The task was difficult; nonetheless, we finished on time."},{"word":"governor","ipa":"/ˈɡʌvənə(r)/","pos":"n.","meaning":"州长；总督；董事","example":"The governor announced new funding for public schools."},{"word":"row","ipa":"/rəʊ/","pos":"n. / v.","meaning":"一排；一行；划船","example":"They sat in the front row of the theatre."},{"word":"manipulate","ipa":"/məˈnɪpjuleɪt/","pos":"v.","meaning":"操纵；巧妙处理","example":"The advertisement tries to manipulate consumers' emotions."},{"word":"readily","ipa":"/ˈredɪli/","pos":"adv.","meaning":"容易地；乐意地","example":"The information is readily available online."},{"word":"prescribe","ipa":"/prɪˈskraɪb/","pos":"v.","meaning":"开处方；规定","example":"Doctors should not prescribe antibiotics for a simple cold."},{"word":"speculate","ipa":"/ˈspekjuleɪt/","pos":"v.","meaning":"推测；投机","example":"Historians can only speculate about his motives."},{"word":"brutal","ipa":"/ˈbruːtl/","pos":"adj.","meaning":"残忍的；严酷的","example":"The novel describes the brutal realities of war."},{"word":"litre","ipa":"/ˈliːtə(r)/","pos":"n.","meaning":"升","example":"The bottle contains two litres of water."},{"word":"suck","ipa":"/sʌk/","pos":"v.","meaning":"吸；吮；使卷入","example":"The baby sucked milk through a bottle."},{"word":"fond","ipa":"/fɒnd/","pos":"adj.","meaning":"喜爱的；深情的","example":"She is very fond of classical music."},{"word":"ship","ipa":"/ʃɪp/","pos":"v. / n.","meaning":"运送；船","example":"The books will be shipped to customers next week."},{"word":"straw","ipa":"/strɔː/","pos":"n.","meaning":"吸管；稻草","example":"She drank the juice through a paper straw."},{"word":"nakedly","ipa":"/ˈneɪkɪdli/","pos":"adv.","meaning":"赤裸地；毫不掩饰地","example":"The article nakedly promotes one company's interests."},{"word":"most generous estimates","ipa":"/məʊst ˈdʒenərəs ˈestɪməts/","pos":"phrase","meaning":"最乐观的估计","example":"Even the most generous estimates suggest a long recovery."},{"word":"city property","ipa":"/ˈsɪti ˈprɒpəti/","pos":"n.","meaning":"城市房产；市政财产","example":"The developer bought several pieces of city property."},{"word":"fixture","ipa":"/ˈfɪkstʃə(r)/","pos":"n.","meaning":"固定设施；常见景象","example":"The old clock has become a familiar fixture in the hall."},{"word":"far-reaching","ipa":"/ˌfɑː ˈriːtʃɪŋ/","pos":"adj.","meaning":"影响深远的","example":"The court's decision had far-reaching consequences."},{"word":"As is so often the case","ipa":"/æz ɪz səʊ ˈɒfn ðə keɪs/","pos":"phrase","meaning":"正如经常发生的那样","example":"As is so often the case, the cheapest option was not the best."},{"word":"disservice","ipa":"/ˌdɪsˈsɜːvɪs/","pos":"n.","meaning":"损害；帮倒忙","example":"Ignoring the evidence does a disservice to the public."},{"word":"literacy","ipa":"/ˈlɪtərəsi/","pos":"n.","meaning":"读写能力；素养","example":"The programme aims to improve adult literacy."},{"word":"distress","ipa":"/dɪˈstres/","pos":"n. / v.","meaning":"痛苦；使苦恼","example":"The news caused her great distress."},{"word":"yield","ipa":"/jiːld/","pos":"v. / n.","meaning":"产生；让步；产量","example":"The experiment yielded surprising results."},{"word":"conceal","ipa":"/kənˈsiːl/","pos":"v.","meaning":"隐藏；隐瞒","example":"He could not conceal his disappointment."},{"word":"lottery","ipa":"/ˈlɒtəri/","pos":"n.","meaning":"抽奖；彩票；碰运气的事","example":"Winning the lottery changed their lives overnight."},{"word":"mouthful","ipa":"/ˈmaʊθfʊl/","pos":"n.","meaning":"一口；少量","example":"She took a mouthful of hot soup."},{"word":"consonant","ipa":"/ˈkɒnsənənt/","pos":"n. / adj.","meaning":"辅音；一致的","example":"The word begins with a consonant."},{"word":"jumble","ipa":"/ˈdʒʌmbl/","pos":"n. / v.","meaning":"混乱的一堆；使混杂","example":"The drawer was a jumble of old letters and photographs."},{"word":"ditch","ipa":"/dɪtʃ/","pos":"v. / n.","meaning":"抛弃；摆脱；沟渠","example":"They decided to ditch the old plan and start again."},{"word":"swap","ipa":"/swɒp/","pos":"v. / n.","meaning":"交换；替换","example":"We can swap seats if you prefer the window."},{"word":"intelligible","ipa":"/ɪnˈtelɪdʒəbl/","pos":"adj.","meaning":"可理解的；清楚的","example":"The recording was too noisy to be intelligible."},{"word":"sensational","ipa":"/senˈseɪʃənl/","pos":"adj.","meaning":"轰动的；极好的","example":"The newspaper published a sensational story about the actor."},{"word":"abbreviation","ipa":"/əˌbriːviˈeɪʃn/","pos":"n.","meaning":"缩写；简称","example":"“Dr” is an abbreviation of “Doctor”."},{"word":"compliance","ipa":"/kəmˈplaɪəns/","pos":"n.","meaning":"遵从；合规","example":"The factory was inspected for compliance with safety rules."},{"word":"drive","ipa":"/draɪv/","pos":"v. / n.","meaning":"驾驶；驱动；动力；驱车路程","example":"Curiosity drives scientific discovery."},{"word":"league","ipa":"/liːɡ/","pos":"n.","meaning":"联赛；联盟；等级","example":"Their team finished at the top of the league."},{"word":"get by","ipa":"/ɡet baɪ/","pos":"phrase","meaning":"勉强过活；应付过去","example":"With two jobs, she manages to get by."},{"word":"contentment","ipa":"/kənˈtentmənt/","pos":"n.","meaning":"满足；知足","example":"He found contentment in a simple country life."},{"word":"hawk","ipa":"/hɔːk/","pos":"n. / v.","meaning":"鹰；主张强硬的人；兜售","example":"A hawk circled above the open field."},{"word":"sled","ipa":"/sled/","pos":"n. / v.","meaning":"雪橇；乘雪橇","example":"The children pulled a sled up the snowy hill."},{"word":"retail","ipa":"/ˈriːteɪl/","pos":"n. / v.","meaning":"零售；零售的","example":"The company sells its products through retail stores."},{"word":"overdue","ipa":"/ˌəʊvəˈdjuː/","pos":"adj.","meaning":"过期的；早该发生的","example":"The library sent a reminder about the overdue book."},{"word":"virtuous","ipa":"/ˈvɜːtʃuəs/","pos":"adj.","meaning":"高尚的；有德行的","example":"She led a virtuous life and helped those in need."},{"word":"oversee","ipa":"/ˌəʊvəˈsiː/","pos":"v.","meaning":"监督；管理","example":"A senior engineer will oversee the construction work."},{"word":"drift","ipa":"/drɪft/","pos":"v. / n.","meaning":"漂流；逐渐变化；趋势","example":"Snow drifted against the side of the house."},{"word":"wicked","ipa":"/ˈwɪkɪd/","pos":"adj.","meaning":"邪恶的；淘气的","example":"The story's wicked queen is jealous of the princess."},{"word":"freezer","ipa":"/ˈfriːzə(r)/","pos":"n.","meaning":"冷冻柜；冰柜","example":"Keep the ice cream in the freezer."},{"word":"pea","ipa":"/piː/","pos":"n.","meaning":"豌豆","example":"She added a handful of peas to the soup."},{"word":"plum","ipa":"/plʌm/","pos":"n. / adj.","meaning":"李子；紫红色；极好的","example":"The tree was heavy with ripe plums."},{"word":"jelly","ipa":"/ˈdʒeli/","pos":"n.","meaning":"果冻；胶状物","example":"The children had fruit jelly for dessert."},{"word":"On balance","ipa":"/ɒn ˈbæləns/","pos":"phrase","meaning":"权衡之后；总的来看","example":"On balance, the benefits outweigh the costs."},{"word":"phonetic","ipa":"/fəˈnetɪk/","pos":"adj.","meaning":"语音的；音标的","example":"The dictionary gives a phonetic transcription for each word."},{"word":"ill-conceived","ipa":"/ˌɪl kənˈsiːvd/","pos":"adj.","meaning":"考虑不周的；构想拙劣的","example":"The project failed because of an ill-conceived plan."},{"word":"faintly","ipa":"/ˈfeɪntli/","pos":"adv.","meaning":"微弱地；隐约地","example":"A familiar tune played faintly in the distance."},{"word":"symbolism","ipa":"/ˈsɪmbəlɪzəm/","pos":"n.","meaning":"象征主义；象征意义","example":"The novel is rich in religious symbolism."},{"word":"flair","ipa":"/fleə(r)/","pos":"n.","meaning":"天赋；风格；风采","example":"She has a real flair for interior design."},{"word":"shareholder","ipa":"/ˈʃeəhəʊldə(r)/","pos":"n.","meaning":"股东","example":"Shareholders voted against the proposed merger."},{"word":"slang","ipa":"/slæŋ/","pos":"n.","meaning":"俚语","example":"The dialogue is full of street slang."},{"word":"refine","ipa":"/rɪˈfaɪn/","pos":"v.","meaning":"改进；提炼","example":"The team refined the design after early testing."},{"word":"in compliance with","ipa":"/ɪn kəmˈplaɪəns wɪð/","pos":"phrase","meaning":"符合；遵从","example":"All equipment must be used in compliance with the instructions."},{"word":"club","ipa":"/klʌb/","pos":"n. / v.","meaning":"俱乐部；棍棒；用棍击打","example":"She joined the university photography club."},{"word":"canoe","ipa":"/kəˈnuː/","pos":"n. / v.","meaning":"独木舟；划独木舟","example":"They crossed the lake in a small canoe."},{"word":"miserable","ipa":"/ˈmɪzrəbl/","pos":"adj.","meaning":"痛苦的；糟糕的；悲惨的","example":"The cold rain made everyone feel miserable."},{"word":"haul","ipa":"/hɔːl/","pos":"v. / n.","meaning":"拖运；运输量","example":"They hauled the damaged boat onto the beach."},{"word":"spray","ipa":"/spreɪ/","pos":"v. / n.","meaning":"喷洒；喷雾；浪花","example":"She sprayed the plants with water."},{"word":"orchard","ipa":"/ˈɔːtʃəd/","pos":"n.","meaning":"果园","example":"The orchard produces apples and pears."},{"word":"chores","ipa":"/tʃɔːz/","pos":"n.","meaning":"日常杂务；家务","example":"The children share the household chores."},{"word":"freelance","ipa":"/ˈfriːlɑːns/","pos":"adj. / adv. / v.","meaning":"自由职业的；做自由职业","example":"She works as a freelance journalist."},{"word":"stack","ipa":"/stæk/","pos":"n. / v.","meaning":"一堆；堆放","example":"A stack of papers covered the desk."},{"word":"barn","ipa":"/bɑːn/","pos":"n.","meaning":"谷仓；牲口棚","example":"The farmer stored hay in the barn."},{"word":"blast","ipa":"/blɑːst/","pos":"n. / v.","meaning":"爆炸；冲击波；猛烈批评","example":"The blast shattered windows across the street."},{"word":"crawl","ipa":"/krɔːl/","pos":"v. / n.","meaning":"爬行；缓慢移动","example":"Traffic crawled through the city centre."},{"word":"den","ipa":"/den/","pos":"n.","meaning":"兽穴；私室","example":"The fox returned to its den at dusk."},{"word":"hitch","ipa":"/hɪtʃ/","pos":"v. / n.","meaning":"搭便车；钩住；小问题","example":"They hitched a ride to the next town."},{"word":"catastrophe","ipa":"/kəˈtæstrəfi/","pos":"n.","meaning":"灾难；大祸","example":"The oil spill was an environmental catastrophe."},{"word":"premium","ipa":"/ˈpriːmiəm/","pos":"n. / adj.","meaning":"保险费；溢价；优质的","example":"Customers are willing to pay a premium for organic food."},{"word":"cut back","ipa":"/kʌt bæk/","pos":"phrase","meaning":"削减；减少","example":"The company plans to cut back on unnecessary travel."},{"word":"appreciably","ipa":"/əˈpriːʃəbli/","pos":"adv.","meaning":"明显地；可观地","example":"The temperature dropped appreciably after sunset."},{"word":"patronize","ipa":"/ˈpætrənaɪz/","pos":"v.","meaning":"光顾；赞助；以居高临下的态度对待","example":"Please patronize local businesses during the festival."},{"word":"extravagant","ipa":"/ɪkˈstrævəɡənt/","pos":"adj.","meaning":"奢侈的；过度的","example":"The wedding was elegant without being extravagant."},{"word":"solitude","ipa":"/ˈsɒlɪtjuːd/","pos":"n.","meaning":"独处；孤独","example":"He enjoys the solitude of the early morning."},{"word":"tractor","ipa":"/ˈtræktə(r)/","pos":"n.","meaning":"拖拉机","example":"The farmer drove a tractor across the field."},{"word":"laborsaving","ipa":"/ˈleɪbəseɪvɪŋ/","pos":"adj.","meaning":"省力的；节省劳力的","example":"The new machine is a laborsaving device."},{"word":"rotary","ipa":"/ˈrəʊtəri/","pos":"adj. / n.","meaning":"旋转的；旋转式装置","example":"The lawnmower has a rotary blade."},{"word":"cultivator","ipa":"/ˈkʌltɪveɪtə(r)/","pos":"n.","meaning":"耕耘机；栽培者","example":"The cultivator loosened the soil between the rows."},{"word":"prompt","ipa":"/prɒmpt/","pos":"v. / adj. / n.","meaning":"促使；迅速的；提示","example":"The report prompted the government to take action."},{"word":"paternity leave","ipa":"/pəˈtɜːnəti liːv/","pos":"n.","meaning":"陪产假；父亲育儿假","example":"He took two months of paternity leave after his son was born."},{"word":"maternity leave","ipa":"/məˈtɜːnəti liːv/","pos":"n.","meaning":"产假","example":"She is currently on maternity leave."},{"word":"mountainous","ipa":"/ˈmaʊntənəs/","pos":"adj.","meaning":"多山的；巨大的","example":"The region is remote and mountainous."},{"word":"vanish","ipa":"/ˈvænɪʃ/","pos":"v.","meaning":"消失；突然不见","example":"The mist vanished as the sun rose."},{"word":"tumor","ipa":"/ˈtjuːmə(r)/","pos":"n.","meaning":"肿瘤","example":"The scan revealed a small benign tumor."},{"word":"intersection","ipa":"/ˌɪntəˈsekʃn/","pos":"n.","meaning":"十字路口；交叉；交集","example":"Turn left at the next intersection."},{"word":"leash","ipa":"/liːʃ/","pos":"n. / v.","meaning":"牵引绳；牵制","example":"Dogs must be kept on a leash in the park."},{"word":"pop the question","ipa":"/pɒp ðə ˈkwestʃən/","pos":"phrase","meaning":"求婚","example":"He chose a quiet dinner to pop the question."},{"word":"go out with","ipa":"/ɡəʊ aʊt wɪð/","pos":"phrase","meaning":"与……约会；外出","example":"She has been going out with him for a year."},{"word":"commute","ipa":"/kəˈmjuːt/","pos":"v. / n.","meaning":"通勤；减刑","example":"Many workers commute to the city by train."},{"word":"consumerism","ipa":"/kənˈsjuːmərɪzəm/","pos":"n.","meaning":"消费主义；保护消费者运动","example":"The film criticizes modern consumerism."},{"word":"astray","ipa":"/əˈstreɪ/","pos":"adj. / adv.","meaning":"迷路的；走入歧途的","example":"The guide dog kept the child from wandering astray."},{"word":"object","ipa":"/əbˈdʒekt/","pos":"v. / n.","meaning":"反对；物体；目标","example":"Several residents object to the new development."},{"word":"deliberately","ipa":"/dɪˈlɪbərətli/","pos":"adv.","meaning":"故意地；从容而谨慎地","example":"He deliberately avoided mentioning the incident."},{"word":"Socrates","ipa":"/ˈsɒkrətiːz/","pos":"n.","meaning":"苏格拉底（古希腊哲学家）","example":"Socrates encouraged his students to question their assumptions."},{"word":"entertain","ipa":"/ˌentəˈteɪn/","pos":"v.","meaning":"娱乐；招待；考虑","example":"The magician entertained the children for an hour."},{"word":"indispensable","ipa":"/ˌɪndɪˈspensəbl/","pos":"adj.","meaning":"不可或缺的","example":"Clean water is indispensable to public health."},{"word":"hindrance","ipa":"/ˈhɪndrəns/","pos":"n.","meaning":"障碍；妨碍","example":"A lack of funding remains a major hindrance."},{"word":"meagre","ipa":"/ˈmiːɡə(r)/","pos":"adj.","meaning":"贫乏的；微薄的","example":"The family survived on a meagre income."},{"word":"excess","ipa":"/ɪkˈses/","pos":"n. / adj.","meaning":"过量；过多的","example":"An excess of sugar can damage your health."},{"word":"diverge","ipa":"/daɪˈvɜːdʒ/","pos":"v.","meaning":"分歧；分叉；偏离","example":"The two roads diverge beyond the bridge."},{"word":"undergrowth","ipa":"/ˈʌndəɡrəʊθ/","pos":"n.","meaning":"灌木丛；林下植被","example":"The hikers pushed through thick undergrowth."},{"word":"tread","ipa":"/tred/","pos":"v. / n.","meaning":"踩踏；行走；路面","example":"Please tread carefully on the wet floor."},{"word":"tedious","ipa":"/ˈtiːdiəs/","pos":"adj.","meaning":"冗长乏味的","example":"The task was tedious but not difficult."},{"word":"slave","ipa":"/sleɪv/","pos":"n. / v.","meaning":"奴隶；苦干","example":"The novel tells the story of an enslaved woman."},{"word":"proverb","ipa":"/ˈprɒvɜːb/","pos":"n.","meaning":"谚语；格言","example":"The proverb warns against counting chickens before they hatch."},{"word":"allegedly","ipa":"/əˈledʒɪdli/","pos":"adv.","meaning":"据称；据说","example":"The officer allegedly accepted money from the company."},{"word":"robbery","ipa":"/ˈrɒbəri/","pos":"n.","meaning":"抢劫；盗窃","example":"The bank robbery took place just before closing time."},{"word":"inflate","ipa":"/ɪnˈfleɪt/","pos":"v.","meaning":"使膨胀；抬高","example":"The dealer had deliberately inflated the price."},{"word":"inflation","ipa":"/ɪnˈfleɪʃn/","pos":"n.","meaning":"通货膨胀；膨胀","example":"Rising food prices pushed inflation higher."},{"word":"blizzard","ipa":"/ˈblɪzəd/","pos":"n.","meaning":"暴风雪","example":"The blizzard closed roads across the region."},{"word":"just about","ipa":"/dʒʌst əˈbaʊt/","pos":"phrase","meaning":"几乎；差不多","example":"I have just about finished the report."},{"word":"rejuvenation","ipa":"/rɪˌdʒuːvəˈneɪʃn/","pos":"n.","meaning":"恢复活力；复兴","example":"The waterfront project led to the rejuvenation of the area."},{"word":"crop up","ipa":"/krɒp ʌp/","pos":"phrase","meaning":"突然出现；意外发生","example":"Problems tend to crop up at the last minute."},{"word":"in the wake of","ipa":"/ɪn ðə weɪk əv/","pos":"phrase","meaning":"在……之后；随着……发生","example":"Food prices rose in the wake of the drought."},{"word":"city-dweller","ipa":"/ˈsɪti dwelə(r)/","pos":"n.","meaning":"城市居民","example":"Many city-dwellers rely on public transport."},{"word":"agitate","ipa":"/ˈædʒɪteɪt/","pos":"v.","meaning":"使不安；煽动；搅动","example":"The news agitated the already nervous crowd."},{"word":"flock","ipa":"/flɒk/","pos":"n. / v.","meaning":"羊群；鸟群；蜂拥","example":"A flock of birds flew over the lake."},{"word":"dwindling","ipa":"/ˈdwɪndlɪŋ/","pos":"adj. / v.","meaning":"逐渐减少的","example":"The town is struggling with a dwindling population."},{"word":"take a dim view of","ipa":"/teɪk ə dɪm vjuː əv/","pos":"phrase","meaning":"对……持否定看法","example":"The board takes a dim view of late submissions."},{"word":"government-affiliated institution","ipa":"/ˌɡʌvənmənt əˈfɪlieɪtɪd ˌɪnstɪˈtjuːʃn/","pos":"n.","meaning":"政府附属机构","example":"She works for a government-affiliated institution."},{"word":"give sb. a leg up","ipa":"/ɡɪv ˈsʌmbədi ə leɡ ʌp/","pos":"phrase","meaning":"助某人一臂之力","example":"The mentor gave her a leg up in the industry."},{"word":"back-breaking","ipa":"/ˈbæk breɪkɪŋ/","pos":"adj.","meaning":"艰苦繁重的","example":"The workers endured back-breaking labour in the sun."},{"word":"beg to differ","ipa":"/beɡ tə ˈdɪfə(r)/","pos":"phrase","meaning":"恕不同意","example":"I beg to differ with that interpretation."},{"word":"syllabus","ipa":"/ˈsɪləbəs/","pos":"n.","meaning":"教学大纲；课程纲要","example":"The syllabus lists all required readings."},{"word":"coin a term","ipa":"/kɔɪn ə tɜːm/","pos":"phrase","meaning":"创造新词","example":"The scientist coined a term to describe the phenomenon."},{"word":"prestigious","ipa":"/preˈstɪdʒəs/","pos":"adj.","meaning":"有声望的；享有盛誉的","example":"She won a scholarship to a prestigious university."},{"word":"pash","ipa":"/pæʃ/","pos":"n.","meaning":"热恋；痴迷","example":"He developed a teenage pash for a local musician."},{"word":"communal life","ipa":"/ˈkɒmjənl laɪf/","pos":"n.","meaning":"集体生活；社区生活","example":"The residents share meals and maintain a busy communal life."},{"word":"streak","ipa":"/striːk/","pos":"n. / v.","meaning":"一段连续；条纹；飞跑","example":"The team is enjoying a ten-game winning streak."},{"word":"get on with","ipa":"/ɡet ɒn wɪð/","pos":"phrase","meaning":"与……相处；继续做","example":"She gets on well with her colleagues."},{"word":"for good","ipa":"/fə ɡʊd/","pos":"phrase","meaning":"永远；一劳永逸地","example":"He left the city for good."},{"word":"atomised urban ways","ipa":"/ˈætəmaɪzd ˈɜːbən weɪz/","pos":"phrase","meaning":"原子化的城市生活方式","example":"Social media can reinforce atomised urban ways of living."},{"word":"pass oneself off as","ipa":"/pɑːs wʌnˈself ɒf æz/","pos":"phrase","meaning":"冒充；假装成","example":"The con artist tried to pass himself off as a doctor."},{"word":"gang","ipa":"/ɡæŋ/","pos":"n. / v.","meaning":"一帮人；团伙；结伙","example":"A gang of thieves targeted the warehouse."},{"word":"desert","ipa":"/ˈdezət; dɪˈzɜːt/","pos":"n. / v.","meaning":"沙漠；抛弃","example":"The desert is extremely cold at night."},{"word":"reparable","ipa":"/ˈrepərəbl/","pos":"adj.","meaning":"可修复的","example":"The damage to the car is reparable."},{"word":"fulfilling","ipa":"/fʊlˈfɪlɪŋ/","pos":"adj.","meaning":"令人满足的；充实的","example":"Teaching can be a deeply fulfilling career."},{"word":"for the sake of","ipa":"/fə ðə seɪk əv/","pos":"phrase","meaning":"为了；出于……考虑","example":"They stayed together for the sake of the children."},{"word":"incline","ipa":"/ɪnˈklaɪn/","pos":"v. / n.","meaning":"倾向于；倾斜；斜坡","example":"I incline to the view that the plan needs more work."},{"word":"automate","ipa":"/ˈɔːtəmeɪt/","pos":"v.","meaning":"使自动化","example":"The factory plans to automate much of its production."},{"word":"consent","ipa":"/kənˈsent/","pos":"n. / v.","meaning":"同意；准许","example":"The patient gave written consent to the procedure."},{"word":"by no means","ipa":"/baɪ nəʊ miːnz/","pos":"phrase","meaning":"绝不；一点也不","example":"The result is by no means certain."},{"word":"blend","ipa":"/blend/","pos":"v. / n.","meaning":"混合；融合","example":"Blend the flour and butter until smooth."},{"word":"kidney","ipa":"/ˈkɪdni/","pos":"n.","meaning":"肾脏","example":"The kidney filters waste from the blood."},{"word":"strain","ipa":"/streɪn/","pos":"n. / v.","meaning":"压力；拉伤；竭力","example":"The long hours put a strain on the family."},{"word":"publicity","ipa":"/pʌbˈlɪsəti/","pos":"n.","meaning":"宣传；公众关注","example":"The event received widespread publicity."},{"word":"moisturiser","ipa":"/ˈmɔɪstʃəraɪzə(r)/","pos":"n.","meaning":"保湿霜；润肤乳","example":"Apply moisturiser after washing your face."},{"word":"cosmetics","ipa":"/kɒzˈmetɪks/","pos":"n.","meaning":"化妆品","example":"The company has launched a new line of cosmetics."},{"word":"take hold of","ipa":"/teɪk həʊld əv/","pos":"phrase","meaning":"抓住；控制","example":"She took hold of the rope and pulled."},{"word":"ascend","ipa":"/əˈsend/","pos":"v.","meaning":"上升；攀登；登上王位","example":"The plane ascended through the clouds."},{"word":"crest","ipa":"/krest/","pos":"n. / v.","meaning":"山顶；波峰；达到顶峰","example":"We reached the crest of the hill before sunset."},{"word":"recount","ipa":"/rɪˈkaʊnt/","pos":"v. / n.","meaning":"叙述；重新计数","example":"The witness recounted the events of that night."},{"word":"dwarf","ipa":"/dwɔːf/","pos":"v. / n.","meaning":"使相形见绌；矮人","example":"The new stadium dwarfs the buildings around it."},{"word":"grave","ipa":"/ɡreɪv/","pos":"adj. / n.","meaning":"严重的；坟墓","example":"The report raised grave concerns about safety."},{"word":"deserted","ipa":"/dɪˈzɜːtɪd/","pos":"adj.","meaning":"荒无人烟的；被遗弃的","example":"We found a deserted house at the end of the road."},{"word":"over the course of","ipa":"/ˌəʊvə ðə kɔːs əv/","pos":"phrase","meaning":"在……期间；在……过程中","example":"The situation improved over the course of the year."},{"word":"work toward","ipa":"/wɜːk təˈwɔːd/","pos":"phrase","meaning":"努力实现；致力于","example":"The countries agreed to work toward a common standard."},{"word":"soak up","ipa":"/səʊk ʌp/","pos":"phrase","meaning":"吸收；沉浸于","example":"The dry ground quickly soaked up the rain."},{"word":"error-proof","ipa":"/ˈerə pruːf/","pos":"adj.","meaning":"防错的；不会出错的","example":"The interface is designed to be as error-proof as possible."},{"word":"liability","ipa":"/ˌlaɪəˈbɪləti/","pos":"n.","meaning":"责任；负债；累赘","example":"The company accepted liability for the accident."},{"word":"myth","ipa":"/mɪθ/","pos":"n.","meaning":"神话；错误观念","example":"It is a myth that we only use ten percent of our brains."},{"word":"deficiency","ipa":"/dɪˈfɪʃnsi/","pos":"n.","meaning":"缺乏；缺陷","example":"Iron deficiency can cause tiredness."},{"word":"red-hot","ipa":"/ˌred ˈhɒt/","pos":"adj.","meaning":"炽热的；热门的","example":"The band became a red-hot favourite among young listeners."},{"word":"somewhat","ipa":"/ˈsʌmwɒt/","pos":"adv.","meaning":"有点儿；稍微","example":"The instructions were somewhat confusing."},{"word":"anguish","ipa":"/ˈæŋɡwɪʃ/","pos":"n. / v.","meaning":"极度痛苦；使痛苦","example":"The parents waited in anguish for news of their son."},{"word":"commit","ipa":"/kəˈmɪt/","pos":"v.","meaning":"承诺；犯下；投入；委托","example":"The company committed itself to reducing waste."},{"word":"sabotage","ipa":"/ˈsæbətɑːʒ/","pos":"n. / v.","meaning":"蓄意破坏；阻碍","example":"The investigation found evidence of deliberate sabotage."},{"word":"hand sth. to someone on a silver platter","ipa":"/hænd ˈsʌmθɪŋ tə ˈsʌmwʌn ɒn ə ˈsɪlvə ˈplætə(r)/","pos":"phrase","meaning":"把某物轻易奉上","example":"They were handed the contract on a silver platter."},{"word":"sullen","ipa":"/ˈsʌlən/","pos":"adj.","meaning":"闷闷不乐的；阴沉的","example":"He sat in sullen silence after the argument."},{"word":"Adj./Adv./n./v. + though + subject + verb","ipa":"/ðəʊ/","pos":"sentence pattern","meaning":"表让步的倒装句型","example":"Difficult though the task was, they finished it on time."},{"word":"replace A with B","ipa":"/rɪˈpleɪs eɪ wɪð biː/","pos":"phrase","meaning":"用 B 替换 A","example":"You can replace the old battery with a rechargeable one."},{"word":"ministry","ipa":"/ˈmɪnɪstri/","pos":"n.","meaning":"部；政府部门；神职","example":"The ministry announced new funding for rural hospitals."},{"word":"outlay","ipa":"/ˈaʊtleɪ/","pos":"n.","meaning":"支出；开销","example":"The initial outlay for the equipment was substantial."},{"word":"slump","ipa":"/slʌmp/","pos":"n. / v.","meaning":"暴跌；衰退；瘫坐","example":"House prices fell sharply during the economic slump."},{"word":"tighten one's belt","ipa":"/ˈtaɪtn wʌnz belt/","pos":"phrase","meaning":"勒紧裤腰带；节省开支","example":"Families had to tighten their belts after the price rises."},{"word":"stature","ipa":"/ˈstætʃə(r)/","pos":"n.","meaning":"声望；地位；身高","example":"The scientist achieved international stature."},{"word":"elite","ipa":"/eɪˈliːt/","pos":"n. / adj.","meaning":"精英；精英的","example":"Only a small elite had access to the best education."},{"word":"squeeze","ipa":"/skwiːz/","pos":"v. / n.","meaning":"挤压；紧缩；拥挤","example":"Squeeze the lemon juice into the bowl."},{"word":"median","ipa":"/ˈmiːdiən/","pos":"n. / adj.","meaning":"中位数；中间的","example":"The median household income rose slightly."},{"word":"postgraduate","ipa":"/ˌpəʊstˈɡrædʒuət/","pos":"n. / adj.","meaning":"研究生；研究生的","example":"She is doing postgraduate research in economics."},{"word":"sb. be in part to blame","ipa":"/biː ɪn pɑːt tə bleɪm/","pos":"phrase","meaning":"某人在一定程度上负有责任","example":"The manager is in part to blame for the confusion."},{"word":"crimp","ipa":"/krɪmp/","pos":"v. / n.","meaning":"妨碍；使卷曲；褶皱","example":"Higher interest rates could crimp consumer spending."},{"word":"a crimp in sth.","ipa":"/ə krɪmp ɪn/","pos":"phrase","meaning":"对……的阻碍","example":"The strike put a crimp in production."},{"word":"property","ipa":"/ˈprɒpəti/","pos":"n.","meaning":"财产；房产；性质","example":"The flood damaged property across the valley."},{"word":"review","ipa":"/rɪˈvjuː/","pos":"n. / v.","meaning":"审查；评论；回顾","example":"The committee will review the policy next year."},{"word":"hub","ipa":"/hʌb/","pos":"n.","meaning":"中心；枢纽","example":"The city is a major hub for air travel."},{"word":"record","ipa":"/ˈrekɔːd/","pos":"adj. / n. / v.","meaning":"创纪录的；记录；录制","example":"The company reported record profits this year."},{"word":"lament","ipa":"/ləˈment/","pos":"v. / n.","meaning":"哀叹；悼念；挽歌","example":"Many residents lament the loss of the local market."},{"word":"disburse","ipa":"/dɪsˈbɜːs/","pos":"v.","meaning":"支付；拨款","example":"The fund will disburse the money over three years."},{"word":"consecutive","ipa":"/kənˈsekjətɪv/","pos":"adj.","meaning":"连续的；接连的","example":"It rained for five consecutive days."},{"word":"bolster","ipa":"/ˈbəʊlstə(r)/","pos":"v.","meaning":"支持；增强","example":"The new evidence bolstered their argument."},{"word":"back","ipa":"/bæk/","pos":"v. / n. / adj.","meaning":"支持；后面；后部的","example":"Several investors agreed to back the project."},{"word":"retrench","ipa":"/rɪˈtrentʃ/","pos":"v.","meaning":"削减开支；裁员；退守","example":"The company was forced to retrench during the downturn."},{"word":"endeavour","ipa":"/ɪnˈdevə(r)/","pos":"n. / v.","meaning":"努力；尽力","example":"The research is a major scientific endeavour."},{"word":"state","ipa":"/steɪt/","pos":"v. / n.","meaning":"陈述；状态；国家","example":"The notice clearly states that photography is forbidden."},{"word":"pinch","ipa":"/pɪntʃ/","pos":"v. / n.","meaning":"捏；掐；少量","example":"She pinched her finger in the drawer."},{"word":"feel the pinch","ipa":"/fiːl ðə pɪntʃ/","pos":"phrase","meaning":"感到手头拮据；感受到压力","example":"Households are beginning to feel the pinch of higher bills."},{"word":"thrift","ipa":"/θrɪft/","pos":"n.","meaning":"节俭；节约","example":"The older generation often values thrift and careful budgeting."},{"word":"issue new orders","ipa":"/ˈɪʃuː njuː ˈɔːdəz/","pos":"phrase","meaning":"发布新订单；下达新命令","example":"The company issued new orders after demand recovered."},{"word":"soar","ipa":"/sɔː(r)/","pos":"v.","meaning":"猛增；高飞","example":"Energy prices soared during the winter."},{"word":"halve","ipa":"/hɑːv/","pos":"v.","meaning":"减半；平分","example":"The company plans to halve its carbon emissions by 2035."},{"word":"top-tier","ipa":"/ˌtɒp ˈtɪə(r)/","pos":"adj.","meaning":"顶级的；一流层次的","example":"She joined a top-tier research university."},{"word":"As...puts it","ipa":"/æz ... pʊts ɪt/","pos":"phrase","meaning":"正如……所说","example":"As the saying puts it, practice makes perfect."},{"word":"doctoral","ipa":"/ˈdɒktərəl/","pos":"adj.","meaning":"博士的；博士学位的","example":"He is writing a doctoral dissertation on urban history."},{"word":"principal","ipa":"/ˈprɪnsəpl/","pos":"adj. / n.","meaning":"主要的；校长；本金","example":"Road safety is the principal concern of local residents."},{"word":"disallow","ipa":"/ˌdɪsəˈlaʊ/","pos":"v.","meaning":"驳回；不允许","example":"The referee disallowed the goal for offside."},{"word":"drop","ipa":"/drɒp/","pos":"v. / n.","meaning":"掉落；下降；放弃；水滴","example":"Sales dropped sharply in the second quarter."},{"word":"assuage","ipa":"/əˈsweɪdʒ/","pos":"v.","meaning":"减轻；缓和","example":"The government tried to assuage public fears."},{"word":"handout","ipa":"/ˈhændaʊt/","pos":"n.","meaning":"讲义；救济品；施舍","example":"The lecturer gave each student a handout."},{"word":"aggregate","ipa":"/ˈæɡrɪɡət/","pos":"n. / adj. / v.","meaning":"总计；聚合的；汇总","example":"The aggregate cost of the project exceeded ten million pounds."},{"word":"tight-fisted","ipa":"/ˌtaɪt ˈfɪstɪd/","pos":"adj.","meaning":"吝啬的；舍不得花钱的","example":"He is too tight-fisted to buy a new pair of shoes."},{"word":"mill","ipa":"/mɪl/","pos":"n. / v.","meaning":"磨坊；工厂；碾磨","example":"The old mill once produced flour for the whole town."},{"word":"bride","ipa":"/braɪd/","pos":"n.","meaning":"新娘","example":"The bride wore a simple white dress."},{"word":"dropout","ipa":"/ˈdrɒpaʊt/","pos":"n.","meaning":"辍学者；退出者","example":"The programme helps school dropouts return to education."},{"word":"topple","ipa":"/ˈtɒpl/","pos":"v.","meaning":"倒下；推翻","example":"Protests helped topple the unpopular government."},{"word":"forget","ipa":"/fəˈɡet/","pos":"v.","meaning":"忘记；遗忘","example":"Don't forget to lock the door."},{"word":"grind away","ipa":"/ɡraɪnd əˈweɪ/","pos":"phrase","meaning":"埋头苦干；不停磨","example":"She ground away at her thesis for months."},{"word":"ferocious","ipa":"/fəˈrəʊʃəs/","pos":"adj.","meaning":"凶猛的；激烈的","example":"The proposal met with ferocious opposition."},{"word":"gruelling","ipa":"/ˈɡruːəlɪŋ/","pos":"adj.","meaning":"折磨人的；艰苦的","example":"The athletes completed a gruelling six-hour race."},{"word":"embattled","ipa":"/ɪmˈbætld/","pos":"adj.","meaning":"四面楚歌的；饱受困扰的","example":"The embattled company announced another round of job cuts."},{"word":"section","ipa":"/ˈsekʃn/","pos":"n. / v.","meaning":"部分；章节；部门；切开","example":"Please read the first section of the report."},{"word":"spout","ipa":"/spaʊt/","pos":"v. / n.","meaning":"喷出；滔滔不绝地说；壶嘴","example":"Water spouted from a crack in the pipe."},{"word":"once-remote","ipa":"/wʌns rɪˈməʊt/","pos":"adj.","meaning":"曾经偏远的","example":"The internet transformed the once-remote village."},{"word":"fanfare","ipa":"/ˈfænfeə(r)/","pos":"n.","meaning":"号角齐鸣；大张旗鼓的宣传","example":"The product was launched with great fanfare."},{"word":"takeaway","ipa":"/ˈteɪkəweɪ/","pos":"n.","meaning":"外卖；要点","example":"The main takeaway is that prevention is better than cure."},{"word":"cover against","ipa":"/ˈkʌvər əˈɡenst/","pos":"phrase","meaning":"为……提供保障；防范","example":"The policy covers the house against flood damage."},{"word":"compensate","ipa":"/ˈkɒmpenseɪt/","pos":"v.","meaning":"补偿；抵消","example":"The company agreed to compensate customers for the delay."},{"word":"in the same league as","ipa":"/ɪn ðə seɪm liːɡ æz/","pos":"phrase","meaning":"与……处于同一水平","example":"The restaurant is in the same league as the city's best."},{"word":"eclipse","ipa":"/ɪˈklɪps/","pos":"v. / n.","meaning":"使黯然失色；日食或月食","example":"Her performance eclipsed everything else at the concert."},{"word":"constitution","ipa":"/ˌkɒnstɪˈtjuːʃn/","pos":"n.","meaning":"宪法；体质；构成","example":"The constitution guarantees freedom of speech."},{"word":"pseudonym","ipa":"/ˈsuːdənɪm/","pos":"n.","meaning":"笔名；化名","example":"The author published her first novel under a pseudonym."},{"word":"merit","ipa":"/ˈmerɪt/","pos":"n. / v.","meaning":"优点；价值；值得","example":"The proposal has considerable merit."},{"word":"congregate","ipa":"/ˈkɒŋɡrɪɡeɪt/","pos":"v.","meaning":"聚集；集合","example":"Fans congregated outside the stadium before the match."},{"word":"swarm","ipa":"/swɔːm/","pos":"n. / v.","meaning":"一大群；蜂拥","example":"A swarm of bees settled on the branch."},{"word":"assemble","ipa":"/əˈsembl/","pos":"v.","meaning":"集合；组装","example":"The crowd assembled in the square at noon."},{"word":"alley","ipa":"/ˈæli/","pos":"n.","meaning":"小巷；胡同","example":"The café is hidden at the end of a narrow alley."},{"word":"meditation","ipa":"/ˌmedɪˈteɪʃn/","pos":"n.","meaning":"冥想；沉思","example":"Daily meditation helps her manage stress."},{"word":"meditate","ipa":"/ˈmedɪteɪt/","pos":"v.","meaning":"冥想；沉思","example":"He likes to meditate before starting work."},{"word":"mouthpiece","ipa":"/ˈmaʊθpiːs/","pos":"n.","meaning":"代言人；喉舌；话筒","example":"The newspaper became a mouthpiece for the ruling party."},{"word":"nurture","ipa":"/ˈnɜːtʃə(r)/","pos":"v. / n.","meaning":"培养；养育；滋养","example":"Good teachers nurture curiosity in their students."},{"word":"discerning","ipa":"/dɪˈsɜːnɪŋ/","pos":"adj.","meaning":"有鉴赏力的；有眼光的","example":"The shop attracts discerning customers who value quality."},{"word":"e-commerce","ipa":"/ˈiː kɒmɜːs/","pos":"n.","meaning":"电子商务","example":"E-commerce has changed the way people shop."},{"word":"sleuth","ipa":"/sluːθ/","pos":"n. / v.","meaning":"侦探；侦查","example":"The journalist played sleuth to uncover the truth."},{"word":"malfeasance","ipa":"/ˌmælˈfiːzns/","pos":"n.","meaning":"渎职；不法行为","example":"The investigation focused on alleged financial malfeasance."},{"word":"whereby","ipa":"/weəˈbaɪ/","pos":"adv.","meaning":"借此；凭此","example":"They created a system whereby patients can book online."},{"word":"quota","ipa":"/ˈkwəʊtə/","pos":"n.","meaning":"配额；定额","example":"The country introduced a strict import quota."},{"word":"pile","ipa":"/paɪl/","pos":"n. / v.","meaning":"一堆；堆积","example":"A pile of books covered the floor."},{"word":"solidarity","ipa":"/ˌsɒlɪˈdærəti/","pos":"n.","meaning":"团结；支援","example":"Workers marched in solidarity with the nurses."},{"word":"retreat","ipa":"/rɪˈtriːt/","pos":"v. / n.","meaning":"撤退；退却；静修处","example":"The army was forced to retreat."},{"word":"presenter","ipa":"/prɪˈzentə(r)/","pos":"n.","meaning":"主持人；呈现者","example":"The television presenter interviewed the scientist."},{"word":"platitude","ipa":"/ˈplætɪtjuːd/","pos":"n.","meaning":"老生常谈；陈词滥调","example":"The speech was filled with empty platitudes."},{"word":"skyscraper","ipa":"/ˈskaɪskreɪpə(r)/","pos":"n.","meaning":"摩天大楼","example":"A new skyscraper dominates the skyline."},{"word":"mushy","ipa":"/ˈmʌʃi/","pos":"adj.","meaning":"糊状的；过度感伤的","example":"The peas were cooked until they were mushy."},{"word":"muscular","ipa":"/ˈmʌskjələ(r)/","pos":"adj.","meaning":"肌肉发达的；强有力的","example":"The dancer has a lean, muscular build."},{"word":"guff","ipa":"/ɡʌf/","pos":"n.","meaning":"胡言乱语；废话","example":"Most of the article was just guff."},{"word":"household","ipa":"/ˈhaʊshəʊld/","pos":"n. / adj.","meaning":"家庭；家用的","example":"The survey covered every household in the district."},{"word":"be swamped with","ipa":"/biː swɒmpt wɪð/","pos":"phrase","meaning":"被……淹没；应接不暇","example":"The office was swamped with complaints."},{"word":"a league of his own","ipa":"/ə liːɡ əv hɪz əʊn/","pos":"phrase","meaning":"独树一帜；远胜他人","example":"As a pianist, he is in a league of his own."},{"word":"tap into","ipa":"/tæp ˈɪntə/","pos":"phrase","meaning":"利用；开发；接入","example":"The campaign hopes to tap into local talent."},{"word":"fittingly","ipa":"/ˈfɪtɪŋli/","pos":"adv.","meaning":"恰当地；合适地","example":"The ceremony ended, fittingly, with a song."},{"word":"provision","ipa":"/prəˈvɪʒn/","pos":"n.","meaning":"提供；条款；准备","example":"The contract includes a provision for early termination."},{"word":"disparage","ipa":"/dɪˈspærɪdʒ/","pos":"v.","meaning":"贬低；轻视","example":"There is no need to disparage your competitors."},{"word":"stroke","ipa":"/strəʊk/","pos":"n. / v.","meaning":"中风；笔画；击球；抚摸","example":"He suffered a stroke but is now recovering."},{"word":"competitive","ipa":"/kəmˈpetətɪv/","pos":"adj.","meaning":"有竞争力的；竞争激烈的","example":"The job market is highly competitive."},{"word":"interfere","ipa":"/ˌɪntəˈfɪə(r)/","pos":"v.","meaning":"干涉；妨碍","example":"Noise from the road interferes with my sleep."},{"word":"in a row","ipa":"/ɪn ə rəʊ/","pos":"phrase","meaning":"连续地；成一排","example":"She won the title three years in a row."},{"word":"doze off","ipa":"/dəʊz ɒf/","pos":"phrase","meaning":"打瞌睡","example":"He dozed off during the film."},{"word":"brisk","ipa":"/brɪsk/","pos":"adj.","meaning":"轻快的；清爽的；兴隆的","example":"We went for a brisk walk before breakfast."},{"word":"frail","ipa":"/freɪl/","pos":"adj.","meaning":"虚弱的；脆弱的","example":"The frail patient needs help walking."},{"word":"molecule","ipa":"/ˈmɒlɪkjuːl/","pos":"n.","meaning":"分子","example":"A water molecule contains two hydrogen atoms."},{"word":"comb","ipa":"/kəʊm/","pos":"n. / v.","meaning":"梳子；梳理；仔细搜寻","example":"She combed her hair before leaving."},{"word":"thread","ipa":"/θred/","pos":"n. / v.","meaning":"线；线索；穿线","example":"The needle needs a finer thread."},{"word":"twist","ipa":"/twɪst/","pos":"v. / n.","meaning":"扭转；扭曲；转折","example":"She twisted the lid off the jar."},{"word":"bend","ipa":"/bend/","pos":"v. / n.","meaning":"弯曲；使屈服；转弯处","example":"Bend your knees when you lift the box."},{"word":"outburst","ipa":"/ˈaʊtbɜːst/","pos":"n.","meaning":"爆发；突然发作","example":"His angry outburst surprised everyone."},{"word":"seclude","ipa":"/sɪˈkluːd/","pos":"v.","meaning":"使隔离；使隐居","example":"The writer secluded herself in a cottage."},{"word":"plague","ipa":"/pleɪɡ/","pos":"n. / v.","meaning":"瘟疫；困扰","example":"Financial problems continued to plague the project."},{"word":"bushy-haired","ipa":"/ˈbʊʃi heəd/","pos":"adj.","meaning":"头发浓密的","example":"A bushy-haired young man opened the door."},{"word":"unravel","ipa":"/ʌnˈrævl/","pos":"v.","meaning":"解开；阐明；瓦解","example":"The investigation began to unravel the mystery."},{"word":"reverence","ipa":"/ˈrevərəns/","pos":"n.","meaning":"崇敬；敬畏","example":"The temple is treated with great reverence."},{"word":"roam","ipa":"/rəʊm/","pos":"v.","meaning":"漫游；闲逛","example":"Wild horses roam freely across the valley."},{"word":"disdain","ipa":"/dɪsˈdeɪn/","pos":"n. / v.","meaning":"鄙视；不屑","example":"She looked at the offer with disdain."},{"word":"In retrospect","ipa":"/ɪn ˈretrəspekt/","pos":"phrase","meaning":"回顾起来；事后看来","example":"In retrospect, we should have acted sooner."},{"word":"arc","ipa":"/ɑːk/","pos":"n. / v.","meaning":"弧线；弧；沿弧线运动","example":"The ball followed a high arc over the net."},{"word":"high-tech","ipa":"/ˌhaɪ ˈtek/","pos":"adj.","meaning":"高科技的","example":"The hospital uses high-tech equipment for diagnosis."},{"word":"precarious","ipa":"/prɪˈkeəriəs/","pos":"adj.","meaning":"不稳定的；危险的","example":"The workers were left in a precarious position."},{"word":"backrest","ipa":"/ˈbækrest/","pos":"n.","meaning":"靠背","example":"The chair has an adjustable backrest."},{"word":"outlandish","ipa":"/aʊtˈlændɪʃ/","pos":"adj.","meaning":"古怪的；离奇的","example":"He wore an outlandish costume to the party."},{"word":"orthodox","ipa":"/ˈɔːθədɒks/","pos":"adj.","meaning":"正统的；传统的","example":"The company challenged orthodox ideas about office work."},{"word":"crinkly","ipa":"/ˈkrɪŋkli/","pos":"adj.","meaning":"有皱褶的；卷曲的","example":"The baby had a sweet, crinkly smile."},{"word":"exemplification","ipa":"/ɪɡˌzemplɪfɪˈkeɪʃn/","pos":"n.","meaning":"例证；典型说明","example":"The essay is a clear exemplification of the argument."},{"word":"legitimacy","ipa":"/lɪˈdʒɪtɪməsi/","pos":"n.","meaning":"合法性；合理性","example":"The court questioned the legitimacy of the election."},{"word":"zinc","ipa":"/zɪŋk/","pos":"n.","meaning":"锌","example":"The roof is covered with sheets of zinc."},{"word":"spread-out","ipa":"/ˌspred ˈaʊt/","pos":"adj.","meaning":"分散的；摊开的","example":"The village is a spread-out collection of small farms."},{"word":"particulate","ipa":"/pɑːˈtɪkjələt/","pos":"n. / adj.","meaning":"颗粒物；微粒的","example":"Airborne particulates can damage the lungs."},{"word":"magnetism","ipa":"/ˈmæɡnətɪzəm/","pos":"n.","meaning":"磁性；吸引力","example":"The electromagnet can be switched off, unlike a permanent magnetism."},{"word":"optics","ipa":"/ˈɒptɪks/","pos":"n.","meaning":"光学；视觉效果","example":"The company improved the optics of the camera."},{"word":"beyond doubt","ipa":"/bɪˈjɒnd daʊt/","pos":"phrase","meaning":"毫无疑问","example":"The evidence proves beyond doubt that the document is authentic."},{"word":"not give/care a fig for sb./sth.","ipa":"/nɒt ɡɪv ə fɪɡ fə/","pos":"phrase","meaning":"对……毫不在乎","example":"They don't care a fig for public opinion."},{"word":"flaw","ipa":"/flɔː/","pos":"n. / v.","meaning":"缺陷；瑕疵；使有缺陷","example":"The plan had one serious flaw."},{"word":"spat","ipa":"/spæt/","pos":"n. / v.","meaning":"小争吵；口角","example":"The two colleagues had a brief spat over the budget."},{"word":"beholden","ipa":"/bɪˈhəʊldən/","pos":"adj.","meaning":"欠人情的；受恩惠的","example":"She did not want to be beholden to any investor."},{"word":"thesis","ipa":"/ˈθiːsɪs/","pos":"n.","meaning":"论文；论点","example":"His thesis argues that cities are becoming more resilient."},{"word":"reverent","ipa":"/ˈrevərənt/","pos":"adj.","meaning":"恭敬的；虔诚的","example":"The visitors spoke in hushed, reverent tones."},{"word":"irreverent","ipa":"/ɪˈrevərənt/","pos":"adj.","meaning":"不敬的；无礼的","example":"The comedian has an irreverent sense of humour."},{"word":"intuition","ipa":"/ˌɪntjuˈɪʃn/","pos":"n.","meaning":"直觉；直觉能力","example":"She trusted her intuition and turned down the job."},{"word":"intuitive","ipa":"/ɪnˈtjuːɪtɪv/","pos":"adj.","meaning":"直觉的；易理解的","example":"The software has a simple, intuitive interface."},{"word":"dynamo","ipa":"/ˈdaɪnəməʊ/","pos":"n.","meaning":"发电机；精力充沛的人","example":"She is a dynamo who works late into the night."},{"word":"bulb","ipa":"/bʌlb/","pos":"n.","meaning":"灯泡；球茎","example":"The light bulb needs replacing."},{"word":"couch","ipa":"/kaʊtʃ/","pos":"n. / v.","meaning":"长沙发；措辞；潜伏","example":"He fell asleep on the couch."},{"word":"inkwell","ipa":"/ˈɪŋkwel/","pos":"n.","meaning":"墨水池；墨水瓶","example":"The antique desk still has a small brass inkwell."},{"word":"engross","ipa":"/ɪnˈɡrəʊs/","pos":"v.","meaning":"使全神贯注；吸引","example":"The mystery novel completely engrossed her."},{"word":"grotesque","ipa":"/ɡrəʊˈtesk/","pos":"adj. / n.","meaning":"怪诞的；丑陋的；怪诞作品","example":"The mask had a grotesque expression."},{"word":"paradox","ipa":"/ˈpærədɒks/","pos":"n.","meaning":"悖论；自相矛盾的情况","example":"It is a paradox that the richest country has such poor public services."},{"word":"terrible","ipa":"/ˈterəbl/","pos":"adj.","meaning":"糟糕的；可怕的","example":"The traffic was terrible this morning."},{"word":"commemorate","ipa":"/kəˈmeməreɪt/","pos":"v.","meaning":"纪念；庆祝","example":"A monument was built to commemorate the victims."},{"word":"austere","ipa":"/ɒˈstɪə(r)/","pos":"adj.","meaning":"简朴的；严峻的；朴素的","example":"The monks live an austere life."},{"word":"periodically","ipa":"/ˌpɪəriˈɒdɪkli/","pos":"adv.","meaning":"定期地；周期性地","example":"The equipment is checked periodically."},{"word":"impressionist","ipa":"/ɪmˈpreʃənɪst/","pos":"n. / adj.","meaning":"印象派画家；印象派的","example":"The museum has a fine collection of Impressionist paintings."},{"word":"civil servant","ipa":"/ˌsɪvl ˈsɜːvənt/","pos":"n.","meaning":"公务员","example":"She has worked as a civil servant for twenty years."},{"word":"derail","ipa":"/dɪˈreɪl/","pos":"v.","meaning":"脱轨；破坏","example":"A minor dispute threatened to derail the negotiations."},{"word":"collide","ipa":"/kəˈlaɪd/","pos":"v.","meaning":"相撞；冲突","example":"The two cars collided at the junction."},{"word":"throw in the towel","ipa":"/θrəʊ ɪn ðə ˈtaʊəl/","pos":"phrase","meaning":"认输；放弃","example":"After months of losses, the owner decided to throw in the towel."},{"word":"inconsistency","ipa":"/ˌɪnkənˈsɪstənsi/","pos":"n.","meaning":"不一致；矛盾","example":"The report contains several inconsistencies."},{"word":"culmination","ipa":"/ˌkʌlmɪˈneɪʃn/","pos":"n.","meaning":"顶点；最终结果","example":"The exhibition was the culmination of years of research."},{"word":"impede","ipa":"/ɪmˈpiːd/","pos":"v.","meaning":"阻碍；妨碍","example":"Heavy snow impeded the rescue effort."},{"word":"set back","ipa":"/set bæk/","pos":"phrase","meaning":"延误；阻碍；使倒退","example":"The project was set back by a shortage of materials."},{"word":"prime","ipa":"/praɪm/","pos":"adj. / n. / v.","meaning":"首要的；全盛时期；使做好准备","example":"Location is a prime consideration when buying a home."},{"word":"in the context of","ipa":"/ɪn ðə ˈkɒntekst əv/","pos":"phrase","meaning":"在……背景下；结合……来看","example":"The decision makes sense in the context of rising costs."},{"word":"eradication","ipa":"/ɪˌrædɪˈkeɪʃn/","pos":"n.","meaning":"根除；消灭","example":"The campaign aims at the eradication of the disease."},{"word":"eliminate","ipa":"/ɪˈlɪmɪneɪt/","pos":"v.","meaning":"消除；淘汰","example":"The new system eliminates the need for paper forms."},{"word":"contemplate","ipa":"/ˈkɒntəmpleɪt/","pos":"v.","meaning":"考虑；凝视；沉思","example":"She is contemplating a move to another city."},{"word":"embody","ipa":"/ɪmˈbɒdi/","pos":"v.","meaning":"体现；具体表现","example":"The building embodies the values of the organization."},{"word":"misconstrue","ipa":"/ˌmɪskənˈstruː/","pos":"v.","meaning":"误解；曲解","example":"Please do not misconstrue my silence as agreement."},{"word":"bequest","ipa":"/bɪˈkwest/","pos":"n.","meaning":"遗产；遗赠","example":"The museum received a large bequest from a private collector."},{"word":"redemption","ipa":"/rɪˈdempʃn/","pos":"n.","meaning":"救赎；挽回；兑现","example":"The novel explores themes of guilt and redemption."},{"word":"measure up","ipa":"/ˈmeʒər ʌp/","pos":"phrase","meaning":"达到标准；合格","example":"The new product failed to measure up to expectations."},{"word":"will","ipa":"/wɪl/","pos":"n. / v.","meaning":"意志；意愿；遗嘱；立遗嘱","example":"She had the will to succeed despite many obstacles."},{"word":"explosive","ipa":"/ɪkˈspləʊsɪv/","pos":"adj. / n.","meaning":"爆炸性的；易爆的；炸药","example":"The issue remains politically explosive."},{"word":"loving-kindness","ipa":"/ˌlʌvɪŋ ˈkaɪndnəs/","pos":"n.","meaning":"慈爱；仁爱","example":"Loving-kindness meditation encourages compassion for others."},{"word":"drafty","ipa":"/ˈdrɑːfti/","pos":"adj.","meaning":"有穿堂风的；通风的","example":"The old house was cold and drafty in winter."},{"word":"conform to","ipa":"/kənˈfɔːm tə/","pos":"phrase","meaning":"符合；遵从","example":"All products must conform to safety standards."},{"word":"scoff","ipa":"/skɒf/","pos":"v. / n.","meaning":"嘲笑；讥笑；狼吞虎咽","example":"Critics scoffed at the plan when it was first proposed."},{"word":"calculus","ipa":"/ˈkælkjələs/","pos":"n.","meaning":"微积分；计算；牙石","example":"She studied calculus as part of her engineering degree."},{"word":"deference","ipa":"/ˈdefərəns/","pos":"n.","meaning":"尊重；顺从","example":"He treated his mentor with great deference."},{"word":"ingenious","ipa":"/ɪnˈdʒiːniəs/","pos":"adj.","meaning":"巧妙的；有创造力的","example":"The team found an ingenious solution to the problem."},{"word":"skeptic","ipa":"/ˈskeptɪk/","pos":"n.","meaning":"怀疑者；怀疑论者","example":"Even the most sceptical observer was impressed."},{"word":"discrepancy","ipa":"/dɪsˈkrepənsi/","pos":"n.","meaning":"差异；不一致","example":"There is a discrepancy between the two reports."},{"word":"capstone","ipa":"/ˈkæpstəʊn/","pos":"n.","meaning":"顶点；毕业设计；压顶石","example":"The final project serves as a capstone for the course."},{"word":"underdog","ipa":"/ˈʌndədɒɡ/","pos":"n.","meaning":"处于劣势的一方；弱者","example":"Everyone loves a story in which the underdog wins."},{"word":"be primed for sth.","ipa":"/biː praɪmd fə/","pos":"phrase","meaning":"为……做好准备","example":"The market is primed for rapid growth."},{"word":"polio","ipa":"/ˈpəʊliəʊ/","pos":"n.","meaning":"脊髓灰质炎；小儿麻痹症","example":"Vaccination has helped bring polio close to eradication."},{"word":"attenuated","ipa":"/əˈtenjueɪtɪd/","pos":"adj.","meaning":"减弱的；减毒的","example":"The vaccine contains an attenuated form of the virus."},{"word":"confer","ipa":"/kənˈfɜː(r)/","pos":"v.","meaning":"授予；协商","example":"The university will confer honorary degrees at the ceremony."},{"word":"bestow","ipa":"/bɪˈstəʊ/","pos":"v.","meaning":"授予；赠予","example":"The queen bestowed a title on the retired officer."},{"word":"inscription","ipa":"/ɪnˈskrɪpʃn/","pos":"n.","meaning":"铭文；题词","example":"The ring bore a short inscription inside."},{"word":"gainsay","ipa":"/ˌɡeɪnˈseɪ/","pos":"v.","meaning":"否认；反驳","example":"No one could gainsay the evidence before them."},{"word":"contradict","ipa":"/ˌkɒntrəˈdɪkt/","pos":"v.","meaning":"反驳；与……矛盾","example":"The latest figures contradict earlier claims."},{"word":"avert","ipa":"/əˈvɜːt/","pos":"v.","meaning":"避免；防止；转移目光","example":"Quick action helped avert a serious accident."},{"word":"atonement","ipa":"/əˈtəʊnmənt/","pos":"n.","meaning":"赎罪；弥补","example":"The character seeks atonement for his past mistakes."},{"word":"reckon","ipa":"/ˈrekən/","pos":"v.","meaning":"认为；估算；依赖","example":"I reckon it will take about two hours."},{"word":"expiation","ipa":"/ˌekspiˈeɪʃn/","pos":"n.","meaning":"赎罪；补偿","example":"The ritual was intended as an act of expiation."},{"word":"call for","ipa":"/kɔːl fə(r)/","pos":"phrase","meaning":"需要；要求；呼吁","example":"The situation calls for immediate action."},{"word":"human","ipa":"/ˈhjuːmən/","pos":"adj. / n.","meaning":"人的；人类","example":"Human behaviour is shaped by both biology and culture."},{"word":"conspiracy","ipa":"/kənˈspɪrəsi/","pos":"n.","meaning":"阴谋；共谋","example":"The men were charged with conspiracy to commit fraud."},{"word":"porch","ipa":"/pɔːtʃ/","pos":"n.","meaning":"门廊；走廊","example":"We sat on the porch and watched the rain."},{"word":"get out of","ipa":"/ɡet aʊt əv/","pos":"phrase","meaning":"离开；逃避；从……获得","example":"I want to get out of the city for the weekend."},{"word":"get out of the rain","ipa":"/ɡet aʊt əv ðə reɪn/","pos":"phrase","meaning":"避雨；从雨中离开","example":"They ran into a shop to get out of the rain."},{"word":"mane","ipa":"/meɪn/","pos":"n.","meaning":"鬃毛","example":"The horse tossed its dark mane."},{"word":"warden","ipa":"/ˈwɔːdn/","pos":"n.","meaning":"典狱长；看守人","example":"The park warden warned visitors about the fire risk."},{"word":"dial","ipa":"/ˈdaɪəl/","pos":"n. / v.","meaning":"表盘；刻度盘；拨号","example":"She dialled the number twice."},{"word":"intricate","ipa":"/ˈɪntrɪkət/","pos":"adj.","meaning":"错综复杂的；精巧的","example":"The carpet has an intricate floral pattern."},{"word":"inferior","ipa":"/ɪnˈfɪəriə(r)/","pos":"adj. / n.","meaning":"较差的；下级的；下属","example":"The cheaper material proved inferior to the original."},{"word":"attribute A to B","ipa":"/əˈtrɪbjuːt eɪ tə biː/","pos":"phrase","meaning":"把 A 归因于 B","example":"Researchers attribute the decline to changing weather patterns."},{"word":"cathedral","ipa":"/kəˈθiːdrəl/","pos":"n.","meaning":"大教堂","example":"The cathedral's stained-glass windows are magnificent."},{"word":"call forth","ipa":"/kɔːl fɔːθ/","pos":"phrase","meaning":"唤起；使产生","example":"The crisis called forth an extraordinary response."},{"word":"indigenous","ipa":"/ɪnˈdɪdʒənəs/","pos":"adj.","meaning":"本土的；土著的","example":"The programme supports indigenous communities."},{"word":"aesthetic","ipa":"/iːsˈθetɪk/","pos":"adj. / n.","meaning":"审美的；美学的；美感","example":"The building has strong aesthetic appeal."},{"word":"accordingly","ipa":"/əˈkɔːdɪŋli/","pos":"adv.","meaning":"相应地；因此","example":"The deadline has changed, so please adjust your plans accordingly."},{"word":"at the turn of the century","ipa":"/æt ðə tɜːn əv ðə ˈsentʃəri/","pos":"phrase","meaning":"在世纪之交","example":"The city grew rapidly at the turn of the century."},{"word":"mishap","ipa":"/ˈmɪshæp/","pos":"n.","meaning":"小事故；不幸遭遇","example":"Despite a few mishaps, the event was a success."},{"word":"anywhere","ipa":"/ˈeniweə(r)/","pos":"adv.","meaning":"任何地方","example":"I cannot find my keys anywhere."},{"word":"karaoke","ipa":"/ˌkæriˈəʊki/","pos":"n.","meaning":"卡拉OK","example":"They rented a private room for karaoke."},{"word":"idle","ipa":"/ˈaɪdl/","pos":"adj. / v.","meaning":"闲置的；空闲的；懒惰的；空转","example":"The machines stood idle for several days."},{"word":"network","ipa":"/ˈnetwɜːk/","pos":"n. / v.","meaning":"网络；人脉网；建立联系","example":"The company has an extensive network of suppliers."},{"word":"variety","ipa":"/vəˈraɪəti/","pos":"n.","meaning":"多样性；种类；品种","example":"The market sells a wide variety of fruit."},{"word":"take for granted","ipa":"/teɪk fə ˈɡrɑːntɪd/","pos":"phrase","meaning":"认为理所当然；想当然","example":"We often take clean water for granted."},{"word":"stamina","ipa":"/ˈstæmɪnə/","pos":"n.","meaning":"体力；耐力","example":"Long-distance running requires great stamina."},{"word":"decode","ipa":"/ˌdiːˈkəʊd/","pos":"v.","meaning":"解码；破译；理解","example":"Experts were able to decode the message."},{"word":"confess","ipa":"/kənˈfes/","pos":"v.","meaning":"承认；坦白；忏悔","example":"He finally confessed that he had made a mistake."},{"word":"hospitable","ipa":"/hɒˈspɪtəbl/","pos":"adj.","meaning":"好客的；适宜居住的","example":"The villagers were warm and hospitable."},{"word":"patch","ipa":"/pætʃ/","pos":"n. / v.","meaning":"补丁；小块；修补","example":"She sewed a patch over the hole in her jeans."},{"word":"seal","ipa":"/siːl/","pos":"v. / n.","meaning":"封住；密封；印章；海豹","example":"Seal the jar tightly after use."},{"word":"foam","ipa":"/fəʊm/","pos":"n. / v.","meaning":"泡沫；起泡沫","example":"White foam covered the surface of the waves."},{"word":"ripen","ipa":"/ˈraɪpən/","pos":"v.","meaning":"成熟；使成熟","example":"The bananas will ripen at room temperature."},{"word":"respiration","ipa":"/ˌrespəˈreɪʃn/","pos":"n.","meaning":"呼吸；呼吸过程","example":"Deep respiration can help you relax."},{"word":"ferment","ipa":"/fəˈment/","pos":"v. / n.","meaning":"发酵；使发酵；骚动","example":"The juice is left to ferment for several days."},{"word":"fingerprint","ipa":"/ˈfɪŋɡəprɪnt/","pos":"n. / v.","meaning":"指纹；提取指纹","example":"Police found a fingerprint on the glass."},{"word":"as certain as","ipa":"/æz ˈsɜːtn æz/","pos":"phrase","meaning":"像……一样确定","example":"Nothing in life is as certain as change."},{"word":"discount","ipa":"/ˈdɪskaʊnt/","pos":"n. / v.","meaning":"折扣；打折；不重视","example":"The store offers a ten percent discount to students."},{"word":"controversial","ipa":"/ˌkɒntrəˈvɜːʃl/","pos":"adj.","meaning":"有争议的；引起争论的","example":"The plan to build a new airport is highly controversial."},{"word":"deem","ipa":"/diːm/","pos":"v.","meaning":"认为；视为","example":"The committee deemed the application incomplete."},{"word":"lockdown","ipa":"/ˈlɒkdaʊn/","pos":"n.","meaning":"封锁；封闭隔离","example":"The school went into lockdown as a safety measure."},{"word":"chip","ipa":"/tʃɪp/","pos":"n. / v.","meaning":"芯片；碎片；薯条；削下","example":"The new chip makes the phone much faster."},{"word":"odor","ipa":"/ˈəʊdə(r)/","pos":"n.","meaning":"气味；臭味","example":"A strange odor came from the kitchen."},{"word":"nasal","ipa":"/ˈneɪzl/","pos":"adj.","meaning":"鼻的；鼻音的","example":"The infection caused nasal congestion."},{"word":"mimic","ipa":"/ˈmɪmɪk/","pos":"v. / n.","meaning":"模仿；模仿者","example":"Some birds can mimic human speech."},{"word":"hazardous","ipa":"/ˈhæzədəs/","pos":"adj.","meaning":"危险的；有害的","example":"Hazardous waste must be disposed of safely."},{"word":"grasshopper","ipa":"/ˈɡrɑːshɒpə(r)/","pos":"n.","meaning":"蚱蜢；蝗虫","example":"A green grasshopper landed on the leaf."},{"word":"outfit","ipa":"/ˈaʊtfɪt/","pos":"n.","meaning":"整套服装；团队","example":"She wore a bright red outfit to the party."},{"word":"lifespan","ipa":"/ˈlaɪfspæn/","pos":"n.","meaning":"寿命；有效期","example":"The average lifespan of the battery is five years."},{"word":"defect","ipa":"/ˈdiːfekt/","pos":"n. / v.","meaning":"缺陷；叛逃","example":"The car was recalled because of a safety defect."},{"word":"carton","ipa":"/ˈkɑːtn/","pos":"n.","meaning":"纸盒；纸箱；一盒的量","example":"He bought a carton of milk on the way home."},{"word":"pad","ipa":"/pæd/","pos":"n. / v.","meaning":"垫子；便签本；填充","example":"She wrote the address on a small pad."},{"word":"rack","ipa":"/ræk/","pos":"n. / v.","meaning":"架子；使痛苦；齿条","example":"Put the clean cups back on the rack."},{"word":"ashore","ipa":"/əˈʃɔː(r)/","pos":"adv.","meaning":"在岸上；向岸上","example":"The sailors returned ashore after the storm."},{"word":"put away","ipa":"/pʊt əˈweɪ/","pos":"phrase","meaning":"收好；放回原处；储存","example":"Please put away the dishes after dinner."},{"word":"deck","ipa":"/dek/","pos":"n. / v.","meaning":"甲板；楼层；装饰","example":"We stood on the deck and watched the sunset."},{"word":"draught","ipa":"/drɑːft/","pos":"n.","meaning":"穿堂风；气流；一饮","example":"A cold draught came through the window."},{"word":"get to sth./doing sth.","ipa":"/ɡet tə/","pos":"phrase","meaning":"开始做某事；得以做某事","example":"We finally got to discussing the budget."},{"word":"and the rest","ipa":"/ænd ðə rest/","pos":"phrase","meaning":"以及其他等等；还有其余部分","example":"The package includes the camera, battery, and the rest."},{"word":"marvelous","ipa":"/ˈmɑːvələs/","pos":"adj.","meaning":"极好的；令人惊叹的","example":"We had a marvelous time at the coast."},{"word":"sprinkle","ipa":"/ˈsprɪŋkl/","pos":"v. / n.","meaning":"撒；少量","example":"Sprinkle a little salt over the vegetables."},{"word":"sack","ipa":"/sæk/","pos":"n. / v.","meaning":"麻袋；解雇；洗劫","example":"The workers were sacked without notice."},{"word":"cargo","ipa":"/ˈkɑːɡəʊ/","pos":"n.","meaning":"货物；货运量","example":"The ship was carrying a cargo of grain."},{"word":"recede","ipa":"/rɪˈsiːd/","pos":"v.","meaning":"后退；减弱；消失","example":"The floodwater slowly receded."},{"word":"rendezvous","ipa":"/ˈrɒndɪvuː/","pos":"n. / v.","meaning":"会面；约会地点；会合","example":"They arranged a rendezvous outside the station."},{"word":"accord","ipa":"/əˈkɔːd/","pos":"n. / v.","meaning":"协议；一致；给予","example":"The two countries signed a peace accord."},{"word":"loudspeaker","ipa":"/ˌlaʊdˈspiːkə(r)/","pos":"n.","meaning":"扬声器；喇叭","example":"The announcement came over the loudspeaker."},{"word":"odd","ipa":"/ɒd/","pos":"adj.","meaning":"奇怪的；奇数的；零星的","example":"It is odd that nobody answered the door."},{"word":"seaman","ipa":"/ˈsiːmən/","pos":"n.","meaning":"海员；水手","example":"The experienced seaman knew how to read the weather."},{"word":"fistful","ipa":"/ˈfɪstfʊl/","pos":"n.","meaning":"一把；少量","example":"He threw a fistful of rice onto the ground."},{"word":"successive","ipa":"/səkˈsesɪv/","pos":"adj.","meaning":"连续的；接连的","example":"The team won three successive matches."},{"word":"sake","ipa":"/seɪk/","pos":"n.","meaning":"缘故；利益；日本清酒","example":"He moved abroad for the sake of his career."},{"word":"swift","ipa":"/swɪft/","pos":"adj.","meaning":"迅速的；敏捷的","example":"The government promised a swift response."},{"word":"in a flash","ipa":"/ɪn ə flæʃ/","pos":"phrase","meaning":"转瞬间；立刻","example":"The bird disappeared in a flash."},{"word":"weep","ipa":"/wiːp/","pos":"v.","meaning":"哭泣；流泪","example":"She began to weep when she heard the news."},{"word":"diaper","ipa":"/ˈdaɪpə(r)/","pos":"n.","meaning":"尿布","example":"The baby needs a clean diaper."},{"word":"quest","ipa":"/kwest/","pos":"n. / v.","meaning":"探索；追求","example":"The expedition began a quest for the lost city."},{"word":"turn over","ipa":"/tɜːn ˈəʊvə(r)/","pos":"phrase","meaning":"翻转；移交；仔细考虑","example":"He turned over the page and continued reading."},{"word":"cabin","ipa":"/ˈkæbɪn/","pos":"n.","meaning":"小木屋；船舱；机舱","example":"They spent the weekend in a forest cabin."},{"word":"heartfelt","ipa":"/ˈhɑːtfelt/","pos":"adj.","meaning":"真诚的；发自内心的","example":"Please accept our heartfelt thanks."},{"word":"behalf","ipa":"/bɪˈhɑːf/","pos":"n.","meaning":"代表；利益","example":"She spoke on behalf of the whole team."},{"word":"on sb.'s behalf","ipa":"/ɒn ˈsʌmbədiz bɪˈhɑːf/","pos":"phrase","meaning":"代表某人；为了某人的利益","example":"I am writing on my colleague's behalf."},{"word":"boyhood","ipa":"/ˈbɔɪhʊd/","pos":"n.","meaning":"少年时代；童年","example":"He spent his boyhood in a small coastal town."},{"word":"diminish","ipa":"/dɪˈmɪnɪʃ/","pos":"v.","meaning":"减少；削弱；贬低","example":"The pain gradually diminished."},{"word":"stardust","ipa":"/ˈstɑːdʌst/","pos":"n.","meaning":"星尘；梦幻魅力","example":"The novel is full of romantic stardust."},{"word":"pound","ipa":"/paʊnd/","pos":"n. / v.","meaning":"英镑；磅；连续敲击；捣碎","example":"The book costs ten pounds."},{"word":"topmost","ipa":"/ˈtɒpməʊst/","pos":"adj.","meaning":"最上面的；最高的","example":"The topmost branch was covered in blossom."},{"word":"rasp","ipa":"/rɑːsp/","pos":"n. / v.","meaning":"刺耳声；粗锉；用锉刀锉","example":"His voice had a rough rasp."},{"word":"cluster","ipa":"/ˈklʌstə(r)/","pos":"n. / v.","meaning":"群；簇；聚集","example":"A cluster of stars shone above the hills."},{"word":"bulge","ipa":"/bʌldʒ/","pos":"n. / v.","meaning":"鼓起；凸起；激增","example":"The bag had a large bulge at the bottom."},{"word":"amid","ipa":"/əˈmɪd/","pos":"prep.","meaning":"在……之中；在……期间","example":"She remained calm amid the chaos."},{"word":"sentimental","ipa":"/ˌsentɪˈmentl/","pos":"adj.","meaning":"多愁善感的；怀旧的","example":"The old photograph made him feel sentimental."},{"word":"bring back","ipa":"/brɪŋ bæk/","pos":"phrase","meaning":"带回；使回忆起；恢复","example":"This song brings back childhood memories."},{"word":"go about","ipa":"/ɡəʊ əˈbaʊt/","pos":"phrase","meaning":"着手做；对待；四处走动","example":"We need to think carefully about how to go about it."},{"word":"paramount","ipa":"/ˈpærəmaʊnt/","pos":"adj.","meaning":"最重要的；至高无上的","example":"Safety is paramount in this laboratory."},{"word":"stationery","ipa":"/ˈsteɪʃənəri/","pos":"n.","meaning":"文具；信纸","example":"The office needs more stationery."},{"word":"monetary","ipa":"/ˈmʌnɪtri/","pos":"adj.","meaning":"货币的；金钱的","example":"The bank tightened monetary policy."},{"word":"keep the secret for","ipa":"/kiːp ðə ˈsiːkrət fə/","pos":"phrase","meaning":"为……保守秘密","example":"I promised to keep the secret for my friend."},{"word":"keep the secret from","ipa":"/kiːp ðə ˈsiːkrət frəm/","pos":"phrase","meaning":"对……隐瞒秘密","example":"She tried to keep the secret from her parents."},{"word":"self-defeating","ipa":"/ˌself dɪˈfiːtɪŋ/","pos":"adj.","meaning":"适得其反的；自我挫败的","example":"Refusing all help is a self-defeating strategy."},{"word":"conflate","ipa":"/kənˈfleɪt/","pos":"v.","meaning":"把……混为一谈；合并","example":"The article conflates two very different ideas."},{"word":"save money for a rainy day","ipa":"/seɪv ˈmʌni fər ə ˈreɪni deɪ/","pos":"phrase","meaning":"未雨绸缪；存钱应急","example":"My grandmother always taught us to save money for a rainy day."},{"word":"burn the midnight oil","ipa":"/bɜːn ðə ˈmɪdnaɪt ɔɪl/","pos":"phrase","meaning":"开夜车；熬夜工作","example":"Students often burn the midnight oil before exams."},{"word":"frugal","ipa":"/ˈfruːɡl/","pos":"adj.","meaning":"节俭的；朴素的","example":"They lived a frugal life and saved most of their income."},{"word":"turn out","ipa":"/tɜːn aʊt/","pos":"phrase","meaning":"结果是；证明是；出席","example":"The plan turned out to be more successful than expected."},{"word":"balance","ipa":"/ˈbæləns/","pos":"n. / v.","meaning":"平衡；均衡；余额","example":"She struggles to balance work and family life."},{"word":"scold","ipa":"/skəʊld/","pos":"v.","meaning":"责骂；训斥","example":"She scolded the children for playing near the road."},{"word":"slavery","ipa":"/ˈsleɪvəri/","pos":"n.","meaning":"奴隶制度；奴役","example":"The museum tells the history of slavery and resistance."},{"word":"faculty","ipa":"/ˈfækəlti/","pos":"n.","meaning":"系；能力；全体教员","example":"The university's faculty voted to expand the programme."},{"word":"privilege","ipa":"/ˈprɪvəlɪdʒ/","pos":"n. / v.","meaning":"特权；荣幸；特别优待","example":"Education should be a right, not a privilege."},{"word":"bipartisan","ipa":"/ˌbaɪˈpɑːtɪzæn/","pos":"adj.","meaning":"两党共同支持的；跨党派的","example":"The leaders reached a bipartisan agreement on infrastructure."},{"word":"mandatory","ipa":"/ˈmændətəri/","pos":"adj.","meaning":"强制的；法定的","example":"Safety training is mandatory for all new employees."},{"word":"expel","ipa":"/ɪkˈspel/","pos":"v.","meaning":"开除；驱逐；排出","example":"The school may expel students who repeatedly break the rules."},{"word":"scope","ipa":"/skəʊp/","pos":"n. / v.","meaning":"范围；机会；仔细审视","example":"The scope of the investigation has been widened."},{"word":"athletic","ipa":"/æθˈletɪk/","pos":"adj.","meaning":"运动的；体格健壮的","example":"She has an athletic build and trains every morning."},{"word":"pool","ipa":"/puːl/","pos":"v. / n.","meaning":"合伙使用；共用；水池","example":"The neighbours decided to pool their resources to buy a shared vehicle."},{"word":"typically","ipa":"/ˈtɪpɪkli/","pos":"adv.","meaning":"通常；典型地","example":"The journey typically takes about three hours."},{"word":"secondary","ipa":"/ˈsekəndri/","pos":"adj.","meaning":"次要的；中学的；继发的","example":"Cost is important, but it is a secondary concern."},{"word":"municipal","ipa":"/mjuːˈnɪsɪpl/","pos":"adj.","meaning":"市政的；地方自治的","example":"The municipal government announced a new recycling programme."},{"word":"precipitation","ipa":"/prɪˌsɪpɪˈteɪʃn/","pos":"n.","meaning":"降水；沉淀；仓促","example":"Heavy precipitation caused flooding in low-lying areas."},{"word":"scarcity","ipa":"/ˈskeəsəti/","pos":"n.","meaning":"稀缺；匮乏","example":"Water scarcity is a growing problem in the region."},{"word":"uneven","ipa":"/ʌnˈiːvn/","pos":"adj.","meaning":"不平坦的；不均匀的；不均衡的","example":"The path was uneven and difficult to walk on."},{"word":"even","ipa":"/ˈiːvn/","pos":"adj. / adv. / v.","meaning":"平坦的；均匀的；偶数的；甚至；使相等","example":"The table has a smooth, even surface."}];
+
+    const STORAGE_KEY = "wordloom_learned_v1";
+    const state = {
+      screen: "study",
+      studyIndex: Number(localStorage.getItem("wordloom_study_index_v1")) || 0,
+      learned: new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")),
+      libraryView: "all",
+      libraryQuery: "",
+      libraryOrder: WORDS.map((_, index) => index),
+      revealedMeanings: new Set(),
+      allMeaningsRevealed: false,
+      quiz: [],
+      quizIndex: 0,
+      selected: null,
+      score: 0,
+      answered: false,
+      feedbackTimer: null
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const studyScreen = $("#studyScreen");
+    const libraryScreen = $("#libraryScreen");
+    const testScreen = $("#testScreen");
+    const headword = $("#headword");
+    const phonetic = $("#phonetic");
+    const partOfSpeech = $("#partOfSpeech");
+    const meaning = $("#meaning");
+    const example = $("#example");
+    const learnedButton = $("#learnedButton");
+    const searchInput = $("#searchInput");
+    const searchResults = $("#searchResults");
+    const emptySearch = $("#emptySearch");
+    const quizWord = $("#quizWord");
+    const optionsBox = $("#options");
+    const quizFeedback = $("#quizFeedback");
+    const feedbackText = $("#feedbackText");
+    const feedbackIcon = $("#feedbackIcon");
+    const nextQuestionButton = $("#nextQuestionButton");
+    const questionLimit = $("#questionLimit");
+    const quizCard = $("#quizCard");
+    const resultCard = $("#resultCard");
+    const libraryBody = $("#libraryBody");
+    const tableSearchInput = $("#tableSearchInput");
+    const shuffleOrderButton = $("#shuffleOrderButton");
+    const revealAllButton = $("#revealAllButton");
+    const libraryEmpty = $("#libraryEmpty");
+
+    if (state.studyIndex >= WORDS.length || state.studyIndex < 0) state.studyIndex = 0;
+    const validWords = new Set(WORDS.map((word) => word.word));
+    state.learned = new Set([...state.learned].filter((word) => validWords.has(word)));
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      })[char]);
+    }
+
+    function escapeRegExp(value) {
+      return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function formatExample(text, word) {
+      const escaped = escapeHtml(text);
+      const forms = [word, word.replace(/'s$/, ""), word.split(" ")[0]];
+      const unique = [...new Set(forms.filter((item) => item.length > 1))];
+      let result = escaped;
+      unique.forEach((form) => {
+        const regex = new RegExp(`\\b${escapeRegExp(escapeHtml(form))}\\b`, "gi");
+        result = result.replace(regex, (match) => `<em>${match}</em>`);
+      });
+      return result;
+    }
+
+    function showToast(message) {
+      const toast = $("#toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    function speak(text = WORDS[state.studyIndex].word) {
+      if (!("speechSynthesis" in window)) {
+        showToast("当前浏览器不支持语音朗读");
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text.replace(/\.\.\./g, ""));
+      utterance.lang = "en-US";
+      utterance.rate = 0.82;
+      utterance.pitch = 1;
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find((voice) => /^en-US/i.test(voice.lang) && /natural|online|aria|jenny|guy/i.test(voice.name))
+        || voices.find((voice) => /^en-US/i.test(voice.lang))
+        || voices.find((voice) => /^en/i.test(voice.lang));
+      if (preferred) utterance.voice = preferred;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function persistStudyState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...state.learned]));
+      localStorage.setItem("wordloom_study_index_v1", String(state.studyIndex));
+    }
+
+    function renderStudy() {
+      const word = WORDS[state.studyIndex];
+      const isPhrase = word.word.includes(" ") || word.word.includes("-");
+      headword.textContent = word.word;
+      headword.classList.toggle("phrase", isPhrase);
+      phonetic.textContent = word.ipa;
+      partOfSpeech.textContent = word.pos;
+      meaning.textContent = word.meaning;
+      example.innerHTML = formatExample(word.example, word.word);
+      $("#wordNumber").textContent = `WORD ${String(state.studyIndex + 1).padStart(3, "0")} / ${String(WORDS.length).padStart(3, "0")}`;
+      $("#prevButton").disabled = state.studyIndex === 0;
+      $("#nextButton").disabled = state.studyIndex === WORDS.length - 1;
+
+      const learned = state.learned.has(word.word);
+      learnedButton.classList.toggle("learned", learned);
+      learnedButton.querySelector("span").textContent = learned ? "已掌握" : "标记为已掌握";
+      renderLearningProgress();
+      persistStudyState();
+    }
+
+    function renderLearningProgress() {
+      const total = WORDS.length;
+      const count = state.learned.size;
+      const percent = Math.round((count / total) * 100);
+      $("#learnedCount").textContent = count;
+      $("#learnedPercent").textContent = `${percent}% 已完成`;
+      $("#learnedProgress").style.width = `${percent}%`;
+      $("#totalWordCount").textContent = `${total} 个词条`;
+      $("#allWordsCount").textContent = total;
+      $("#masteredWordsCount").textContent = count;
+      $("#unmasteredWordsCount").textContent = total - count;
+    }
+
+    function getLibraryEntries() {
+      const query = state.libraryQuery.trim().toLowerCase();
+      return state.libraryOrder
+        .map((index) => ({ item: WORDS[index], index }))
+        .filter(({ item }) => {
+          const mastered = state.learned.has(item.word);
+          if (state.libraryView === "mastered" && !mastered) return false;
+          if (state.libraryView === "unmastered" && mastered) return false;
+          return !query || item.word.toLowerCase().includes(query) || item.meaning.toLowerCase().includes(query);
+        });
+    }
+
+    function updateLibraryHeader(entries = getLibraryEntries()) {
+      const titles = {
+        all: "全部词汇",
+        mastered: "已掌握单词",
+        unmastered: "未掌握单词"
+      };
+      const maskedCount = entries.filter(({ item }) => !state.revealedMeanings.has(item.word)).length;
+      $("#libraryTitle").textContent = titles[state.libraryView];
+      $("#librarySubtitle").textContent = state.libraryQuery.trim()
+        ? `筛选结果 ${entries.length} 个，尚有 ${maskedCount} 条释义被遮挡。`
+        : `共 ${entries.length} 个词条，尚有 ${maskedCount} 条释义被遮挡。`;
+      revealAllButton.textContent = state.allMeaningsRevealed ? "重新遮挡全部" : "清除全部遮挡";
+      document.querySelectorAll(".library-tab").forEach((button) => {
+        const active = button.dataset.libraryView === state.libraryView;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+      });
+    }
+
+    function renderLibrary() {
+      const entries = getLibraryEntries();
+      libraryBody.innerHTML = entries.map(({ item, index }) => {
+        const mastered = state.learned.has(item.word);
+        const masked = !state.revealedMeanings.has(item.word);
+        return `
+          <tr>
+            <td class="table-index">${String(index + 1).padStart(3, "0")}</td>
+            <td><span class="row-word">${escapeHtml(item.word)}</span></td>
+            <td class="ipa-cell ipa-col">${escapeHtml(item.ipa)}</td>
+            <td class="pos-cell">${escapeHtml(item.pos)}</td>
+            <td>
+              <button class="meaning-peek ${masked ? "masked" : ""}" type="button" data-reveal-index="${index}" aria-label="${masked ? "显示" : "隐藏"} ${escapeHtml(item.word)} 的中文释义" title="点击${masked ? "显示" : "隐藏"}释义">
+                <span class="meaning-value">${escapeHtml(item.meaning)}</span>
+              </button>
+            </td>
+            <td class="mastery-cell">
+              <div class="mastery-cell-inner">
+                <span class="status-pill ${mastered ? "mastered" : ""}">${mastered ? "已掌握" : "未掌握"}</span>
+                <button class="row-action" type="button" data-mastery-index="${index}">${mastered ? "移入未掌握" : "移入已掌握"}</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+      libraryEmpty.hidden = entries.length > 0;
+      updateLibraryHeader(entries);
+    }
+
+    function toggleMeaningReveal(button) {
+      const index = Number(button.dataset.revealIndex);
+      const word = WORDS[index];
+      if (!word) return;
+      if (state.revealedMeanings.has(word.word)) {
+        state.revealedMeanings.delete(word.word);
+        button.classList.add("masked");
+        button.setAttribute("aria-label", `显示 ${word.word} 的中文释义`);
+      } else {
+        state.revealedMeanings.add(word.word);
+        button.classList.remove("masked");
+        button.setAttribute("aria-label", `隐藏 ${word.word} 的中文释义`);
+      }
+      state.allMeaningsRevealed = WORDS.every((word) => state.revealedMeanings.has(word.word));
+      updateLibraryHeader();
+    }
+
+    function toggleAllMeaningReveals() {
+      if (state.allMeaningsRevealed) {
+        state.revealedMeanings.clear();
+        state.allMeaningsRevealed = false;
+        showToast("已重新遮挡全部释义");
+      } else {
+        WORDS.forEach((word) => state.revealedMeanings.add(word.word));
+        state.allMeaningsRevealed = true;
+        showToast("已清除全部遮挡");
+      }
+      renderLibrary();
+    }
+
+    function shuffleLibraryOrder() {
+      state.libraryOrder = shuffle(state.libraryOrder);
+      renderLibrary();
+      showToast("已随机打乱全部单词顺序");
+    }
+
+    function toggleMasteryByIndex(index) {
+      const word = WORDS[index];
+      if (!word) return;
+      if (state.learned.has(word.word)) {
+        state.learned.delete(word.word);
+        showToast(`已将“${word.word}”移入未掌握`);
+      } else {
+        state.learned.add(word.word);
+        showToast(`已将“${word.word}”移入已掌握`);
+      }
+      renderStudy();
+      renderLibrary();
+    }
+
+    function moveStudy(delta) {
+      const next = state.studyIndex + delta;
+      if (next < 0 || next >= WORDS.length) return;
+      state.studyIndex = next;
+      renderStudy();
+      $(".word-card").animate(
+        [{ opacity: 0.55, transform: "translateY(5px)" }, { opacity: 1, transform: "translateY(0)" }],
+        { duration: 210, easing: "ease-out" }
+      );
+    }
+
+    function randomStudy() {
+      if (WORDS.length < 2) return;
+      let next = state.studyIndex;
+      while (next === state.studyIndex) next = Math.floor(Math.random() * WORDS.length);
+      state.studyIndex = next;
+      renderStudy();
+    }
+
+    function toggleLearned() {
+      const word = WORDS[state.studyIndex].word;
+      if (state.learned.has(word)) {
+        state.learned.delete(word);
+        showToast("已取消掌握标记");
+      } else {
+        state.learned.add(word);
+        showToast("已标记为掌握");
+      }
+      renderStudy();
+    }
+
+    function renderSearch(query = "") {
+      const normalized = query.trim().toLowerCase();
+      if (!normalized) {
+        searchResults.innerHTML = "";
+        emptySearch.hidden = true;
+        return;
+      }
+      const matches = WORDS
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => item.word.toLowerCase().includes(normalized) || item.meaning.toLowerCase().includes(normalized))
+        .slice(0, 16);
+      searchResults.innerHTML = matches.map(({ item, index }) => `
+        <button class="search-result" type="button" data-index="${index}">
+          <strong>${escapeHtml(item.word)}</strong>
+          <span>${escapeHtml(item.meaning.split("；")[0])}</span>
+        </button>
+      `).join("");
+      emptySearch.hidden = matches.length > 0;
+    }
+
+    function switchScreen(screen) {
+      state.screen = screen;
+      studyScreen.classList.toggle("active", screen === "study");
+      libraryScreen.classList.toggle("active", screen === "library");
+      testScreen.classList.toggle("active", screen === "test");
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.screen === screen);
+      });
+      if (screen === "library") renderLibrary();
+      if (screen === "test" && state.quiz.length === 0) startQuiz();
+    }
+
+    function shuffle(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function buildQuiz() {
+      const count = Math.min(Number(questionLimit.value), WORDS.length);
+      const chosen = [];
+      const pool = shuffle(WORDS.map((_, index) => index)).slice(0, count);
+      const correctPositions = [];
+      while (correctPositions.length < count) {
+        correctPositions.push(...shuffle([0, 1, 2, 3]));
+      }
+      pool.forEach((wordIndex, questionIndex) => {
+        const correct = WORDS[wordIndex];
+        const candidateMeanings = [...new Set(
+          WORDS.map((word) => word.meaning).filter((meaning) => meaning !== correct.meaning)
+        )];
+        const distractors = shuffle(candidateMeanings).slice(0, 3);
+        const choices = [...distractors];
+        choices.splice(correctPositions[questionIndex], 0, correct.meaning);
+        chosen.push({
+          wordIndex,
+          choices,
+          correct: correct.meaning
+        });
+      });
+      return chosen;
+    }
+
+    function startQuiz() {
+      state.quiz = buildQuiz();
+      state.quizIndex = 0;
+      state.score = 0;
+      state.selected = null;
+      state.answered = false;
+      state.streak = 0;
+      state.bestStreak = 0;
+      quizCard.hidden = false;
+      resultCard.classList.remove("show");
+      $("#quizProgressText").textContent = `第 1 / ${state.quiz.length} 题`;
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      clearTimeout(state.feedbackTimer);
+      const question = state.quiz[state.quizIndex];
+      const item = WORDS[question.wordIndex];
+      const isPhrase = item.word.includes(" ") || item.word.includes("-");
+      state.selected = null;
+      state.answered = false;
+      quizWord.textContent = item.word;
+      quizWord.classList.toggle("phrase", isPhrase);
+      $("#quizProgressText").textContent = `第 ${state.quizIndex + 1} / ${state.quiz.length} 题`;
+      $("#scorePill").textContent = `得分 ${state.score}`;
+      $("#quizProgress").style.width = `${(state.quizIndex / state.quiz.length) * 100}%`;
+      feedbackText.textContent = "";
+      feedbackIcon.classList.remove("show", "wrong");
+      nextQuestionButton.disabled = true;
+      nextQuestionButton.textContent = state.quizIndex === state.quiz.length - 1 ? "查看结果" : "下一题";
+      optionsBox.innerHTML = question.choices.map((choice, index) => `
+        <button class="option" type="button" data-choice="${escapeHtml(choice)}">
+          <span class="option-key">${String.fromCharCode(65 + index)}</span>
+          <span class="option-text">${escapeHtml(choice)}</span>
+        </button>
+      `).join("");
+      renderQuizStats();
+    }
+
+    function renderQuizStats() {
+      const wrong = state.quizIndex + (state.answered ? 1 : 0) - state.score;
+      $("#sideCorrect").textContent = state.score;
+      $("#sideWrong").textContent = Math.max(0, wrong);
+      $("#sideStreak").textContent = state.streak || 0;
+      $("#sideBest").textContent = state.bestStreak || 0;
+    }
+
+    function answerQuestion(choice) {
+      if (state.answered) {
+        nextQuestionButton.disabled = false;
+        return;
+      }
+      const question = state.quiz[state.quizIndex];
+      const correct = choice === question.correct;
+      state.selected = choice;
+      state.answered = true;
+      document.querySelectorAll(".option").forEach((button) => {
+        button.disabled = true;
+        if (button.dataset.choice === question.correct) button.classList.add("correct");
+        if (button.dataset.choice === choice && !correct) button.classList.add("wrong");
+      });
+      if (correct) {
+        state.score += 1;
+        state.streak += 1;
+        state.bestStreak = Math.max(state.bestStreak, state.streak);
+        feedbackText.textContent = "回答正确，继续保持。";
+        feedbackIcon.classList.remove("wrong");
+      } else {
+        state.streak = 0;
+        const correctIndex = question.choices.indexOf(question.correct);
+        feedbackText.textContent = `正确答案：${String.fromCharCode(65 + correctIndex)}. ${question.correct}`;
+        feedbackIcon.classList.add("wrong");
+      }
+      feedbackIcon.classList.add("show");
+      $("#scorePill").textContent = `得分 ${state.score}`;
+      nextQuestionButton.disabled = false;
+      renderQuizStats();
+    }
+
+    function nextQuestion() {
+      if (!state.answered) return;
+      if (state.quizIndex >= state.quiz.length - 1) {
+        finishQuiz();
+        return;
+      }
+      state.quizIndex += 1;
+      renderQuestion();
+    }
+
+    function finishQuiz() {
+      const total = state.quiz.length;
+      const percent = Math.round((state.score / total) * 100);
+      quizCard.hidden = true;
+      resultCard.classList.add("show");
+      $("#quizProgress").style.width = "100%";
+      $("#resultScore").innerHTML = `${percent}%<span>正确率</span>`;
+      $("#resultRing").style.setProperty("--score-angle", `${percent * 3.6}deg`);
+      let title = "检测完成";
+      let copy = `本轮答对 ${state.score} / ${total} 题。`;
+      if (percent >= 90) {
+        title = "表现非常出色";
+        copy = `本轮答对 ${state.score} / ${total} 题，掌握得很扎实。`;
+      } else if (percent >= 70) {
+        title = "状态不错";
+        copy = `本轮答对 ${state.score} / ${total} 题，再复习一下错词会更稳。`;
+      } else if (percent < 60) {
+        title = "值得再练一轮";
+        copy = `本轮答对 ${state.score} / ${total} 题，建议先回背单词模块复习。`;
+      }
+      $("#resultTitle").textContent = title;
+      $("#resultCopy").textContent = copy;
+      renderQuizStats();
+    }
+
+    document.querySelectorAll(".tab-button").forEach((button) => {
+      button.addEventListener("click", () => switchScreen(button.dataset.screen));
+    });
+    $("#prevButton").addEventListener("click", () => moveStudy(-1));
+    $("#nextButton").addEventListener("click", () => moveStudy(1));
+    $("#randomButton").addEventListener("click", randomStudy);
+    $("#speakButton").addEventListener("click", () => speak());
+    $("#inlineSpeakButton").addEventListener("click", () => speak());
+    learnedButton.addEventListener("click", toggleLearned);
+    searchInput.addEventListener("input", (event) => renderSearch(event.target.value));
+    searchResults.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-index]");
+      if (!button) return;
+      state.studyIndex = Number(button.dataset.index);
+      renderStudy();
+      searchInput.value = "";
+      renderSearch("");
+    });
+    document.querySelectorAll(".library-tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.libraryView = button.dataset.libraryView;
+        renderLibrary();
+      });
+    });
+    tableSearchInput.addEventListener("input", (event) => {
+      state.libraryQuery = event.target.value;
+      renderLibrary();
+    });
+    shuffleOrderButton.addEventListener("click", shuffleLibraryOrder);
+    revealAllButton.addEventListener("click", toggleAllMeaningReveals);
+    libraryBody.addEventListener("click", (event) => {
+      const meaningButton = event.target.closest("[data-reveal-index]");
+      if (meaningButton) {
+        toggleMeaningReveal(meaningButton);
+        return;
+      }
+      const masteryButton = event.target.closest("[data-mastery-index]");
+      if (masteryButton) toggleMasteryByIndex(Number(masteryButton.dataset.masteryIndex));
+    });
+
+    optionsBox.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-choice]");
+      if (button) answerQuestion(button.dataset.choice);
+    });
+    nextQuestionButton.addEventListener("click", nextQuestion);
+    $("#restartButton").addEventListener("click", startQuiz);
+    $("#retryButton").addEventListener("click", startQuiz);
+    $("#backStudyButton").addEventListener("click", () => switchScreen("study"));
+    $("#quizSpeakButton").addEventListener("click", () => {
+      if (state.quiz.length) speak(WORDS[state.quiz[state.quizIndex].wordIndex].word);
+    });
+    questionLimit.addEventListener("input", () => {
+      $("#questionLimitLabel").textContent = `${questionLimit.value} 题`;
+    });
+    questionLimit.addEventListener("change", startQuiz);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.target.matches("input")) return;
+      if (state.screen === "study") {
+        if (event.key === "ArrowLeft") moveStudy(-1);
+        if (event.key === "ArrowRight") moveStudy(1);
+        if (event.code === "Space") {
+          event.preventDefault();
+          speak();
+        }
+        return;
+      }
+      if (state.screen === "test") {
+        const number = Number(event.key);
+        const letter = event.key.length === 1 ? event.key.toUpperCase().charCodeAt(0) - 65 : -1;
+        const optionIndex = number >= 1 && number <= 4 ? number - 1 : letter;
+        if (optionIndex >= 0 && optionIndex <= 3 && !state.answered) {
+          const options = document.querySelectorAll(".option");
+          if (options[optionIndex]) answerQuestion(options[optionIndex].dataset.choice);
+        }
+        if (event.key === "Enter" && state.answered) nextQuestion();
+      }
+    });
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    renderStudy();
+    renderLearningProgress();
+  </script>
+</body>
+</html>
