@@ -347,6 +347,7 @@
     }
 
     .meaning-block {
+      position: relative;
       margin-top: 34px;
       padding-top: 27px;
       border-top: 1px solid var(--line);
@@ -384,11 +385,66 @@
     }
 
     .example-block {
+      position: relative;
       margin-top: 30px;
       padding: 21px 23px;
       background: rgba(244, 239, 229, 0.78);
       border-left: 3px solid var(--gold);
       border-radius: 4px 16px 16px 4px;
+    }
+
+    .recall-content {
+      transition: opacity 150ms ease, visibility 150ms ease;
+    }
+
+    .recall-hidden .recall-content {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .recall-cover {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: none;
+      width: 100%;
+      padding: 18px;
+      color: var(--ink);
+      background: linear-gradient(145deg, rgba(255, 252, 246, 0.96), rgba(244, 239, 229, 0.94));
+      border: 1px dashed rgba(23, 45, 53, 0.19);
+      border-radius: 13px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      flex-direction: column;
+    }
+
+    .recall-hidden .recall-cover {
+      display: flex;
+    }
+
+    .recall-cover:hover {
+      color: var(--accent-dark);
+      border-color: rgba(223, 98, 73, 0.4);
+    }
+
+    .recall-cover svg {
+      width: 22px;
+      height: 22px;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+
+    .recall-cover strong {
+      font-size: 14px;
+      letter-spacing: 0.01em;
+    }
+
+    .recall-cover small {
+      color: var(--muted);
+      font-size: 11px;
     }
 
     .example {
@@ -1789,16 +1845,30 @@
               </button>
             </div>
 
-            <div class="meaning-block">
-              <p class="meaning-label">释义 · Meaning</p>
-              <span id="partOfSpeech" class="pos-badge">adj.</span>
-              <p id="meaning" class="meaning">游牧的；流浪的</p>
+            <div id="meaningBlock" class="meaning-block recall-hidden">
+              <button id="meaningCover" class="recall-cover" type="button" aria-label="显示中文释义" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                <strong>点击显示中文释义</strong>
+                <small>先尝试回忆，再打开答案</small>
+              </button>
+              <div id="meaningContent" class="recall-content">
+                <p class="meaning-label">释义 · Meaning</p>
+                <span id="partOfSpeech" class="pos-badge">adj.</span>
+                <p id="meaning" class="meaning">游牧的；流浪的</p>
+              </div>
             </div>
 
-            <div class="example-block">
-              <p class="example-label">例句 · Example</p>
-              <div id="example" class="example-list">
-                <p class="example">The group has maintained a <em>nomadic</em> way of life for centuries.</p>
+            <div id="exampleBlock" class="example-block recall-hidden">
+              <button id="exampleCover" class="recall-cover" type="button" aria-label="显示例句" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+                <strong>点击显示例句</strong>
+                <small>用例句检查实际用法</small>
+              </button>
+              <div class="recall-content">
+                <p class="example-label">例句 · Example</p>
+                <div id="example" class="example-list">
+                  <p class="example">The group has maintained a <em>nomadic</em> way of life for centuries.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -2055,6 +2125,10 @@
     const partOfSpeech = $("#partOfSpeech");
     const meaning = $("#meaning");
     const example = $("#example");
+    const meaningBlock = $("#meaningBlock");
+    const exampleBlock = $("#exampleBlock");
+    const meaningCover = $("#meaningCover");
+    const exampleCover = $("#exampleCover");
     const markMasteredButton = $("#markMasteredButton");
     const markUnmasteredButton = $("#markUnmasteredButton");
     const searchInput = $("#searchInput");
@@ -2084,6 +2158,7 @@
     if (state.studyIndex >= WORDS.length || state.studyIndex < 0) state.studyIndex = 0;
     const validWords = new Set(WORDS.map((word) => word.word));
     state.learned = new Set([...state.learned].filter((word) => validWords.has(word)));
+    let lastRecallWord = null;
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, (char) => ({
@@ -2115,6 +2190,20 @@
           ${formatExample(sentence, item.word)}
         </p>
       `).join("");
+    }
+
+    function prepareRecall(word) {
+      if (lastRecallWord === word) return;
+      lastRecallWord = word;
+      meaningBlock.classList.add("recall-hidden");
+      exampleBlock.classList.add("recall-hidden");
+      meaningCover.setAttribute("aria-expanded", "false");
+      exampleCover.setAttribute("aria-expanded", "false");
+    }
+
+    function revealRecall(block, cover) {
+      block.classList.remove("recall-hidden");
+      cover.setAttribute("aria-expanded", "true");
     }
 
     function showToast(message) {
@@ -2157,6 +2246,7 @@
       partOfSpeech.textContent = word.pos;
       meaning.textContent = word.meaning;
       renderExamples(word);
+      prepareRecall(word.word);
       $("#wordNumber").textContent = `WORD ${String(state.studyIndex + 1).padStart(3, "0")} / ${String(WORDS.length).padStart(3, "0")}`;
       $("#prevButton").disabled = state.studyIndex === 0;
       $("#nextButton").disabled = state.studyIndex === WORDS.length - 1;
@@ -2558,6 +2648,8 @@
     $("#randomButton").addEventListener("click", randomStudy);
     $("#speakButton").addEventListener("click", () => speak());
     $("#inlineSpeakButton").addEventListener("click", () => speak());
+    meaningCover.addEventListener("click", () => revealRecall(meaningBlock, meaningCover));
+    exampleCover.addEventListener("click", () => revealRecall(exampleBlock, exampleCover));
     markMasteredButton.addEventListener("click", () => setStudyMastery(true));
     markUnmasteredButton.addEventListener("click", () => setStudyMastery(false));
     searchInput.addEventListener("input", (event) => renderSearch(event.target.value));
